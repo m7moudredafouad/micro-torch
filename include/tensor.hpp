@@ -2,9 +2,19 @@
 #include "includes.hpp"
 #include "storage.hpp"
 
+template <typename T = uint32_t>
 class Tensor {
    public:
     Tensor() = default;
+
+    Tensor(uint32_t ndims, uint32_t* const shape) : m_ndims(ndims) {
+        m_shape = new uint32_t[m_ndims];
+        m_stride = new uint32_t[m_ndims];
+        std::copy(&shape[0], &shape[m_ndims], m_shape);
+        SetDefaultStrides();
+
+        m_storage = Storage(NumberOfBytes());
+    }
 
     Tensor(const std::vector<uint32_t>& shape) : m_ndims(shape.size()) {
         m_shape = new uint32_t[m_ndims];
@@ -12,7 +22,7 @@ class Tensor {
         std::copy(&shape[0], &shape[m_ndims], m_shape);
         SetDefaultStrides();
 
-        m_storage = Storage(Size());
+        m_storage = Storage(NumberOfBytes());
     }
 
     Tensor(const std::vector<uint32_t>& shape, const std::vector<uint32_t>& stride) : m_ndims(shape.size()) {
@@ -23,7 +33,12 @@ class Tensor {
 
         std::copy(&shape[0], &shape[m_ndims], m_shape);
         std::copy(&stride[0], &stride[m_ndims], m_shape);
-        m_storage = Storage(Size());
+        m_storage = Storage(NumberOfBytes());
+    }
+
+    ~Tensor() {
+        delete[] m_shape;
+        delete[] m_stride;
     }
 
     uint32_t Size() {
@@ -36,6 +51,8 @@ class Tensor {
         return size;
     }
 
+    uint32_t NumberOfBytes() { return Size() * sizeof(T); }
+
     void SetDefaultStrides() {
         LOG_IF(FATAL, !m_stride);
         LOG_IF(FATAL, !m_shape);
@@ -47,14 +64,56 @@ class Tensor {
         }
     }
 
-    uint32_t operator[](uint32_t idx) const { return m_storage.read<uint32_t>(m_stride[m_ndims - 1] * idx); }
+    // TODO: Remove this later when introducing iterators
+    T& operator[](uint32_t offset) { return m_storage.at<T>(offset); }
 
-    uint32_t& operator[](uint32_t idx) { return m_storage.read<uint32_t>(m_stride[m_ndims - 1] * idx); }
+    T& operator[](std::initializer_list<uint32_t> indices) {
+        LOG_IF(FATAL, (uint8_t)indices.size() != m_ndims)
+            << "Indices size=" << indices.size() << " don't match the full_shape=" << int(m_ndims);
+        uint32_t offset = 0, i = 0;
 
-    ~Tensor() {
-        delete[] m_shape;
-        delete[] m_stride;
+        for (auto idx : indices) {
+            LOG_IF(FATAL, idx >= m_shape[i])
+                << "index is out of range, full_shape= " << m_shape[i] << " and index=" << idx;
+            offset += idx * m_stride[i];
+            i++;
+        }
+
+        return m_storage.at<T>(offset);
     }
+
+    T& at(std::initializer_list<uint32_t> indices) { return this->operator[](indices); }
+
+    Tensor<T> operator+(const Tensor<T>& other) { return Tensor<T>(m_ndims, m_shape); }
+
+    void operator=(T value) {
+        for (uint32_t i = 0; i < Size(); i++) {
+            m_storage.at<T>(i) = value;
+        }
+    }
+
+    Tensor<T> operator*(T value) {
+        Tensor<T> tensor(m_ndims, m_shape);
+
+        for (uint32_t i = 0; i < Size(); i++) {
+            tensor.m_storage.at<T>(i) = m_storage.at<T>(i) * value;
+        }
+
+        return tensor;
+    }
+
+    Tensor<T> operator+(T value) {
+        Tensor<T> tensor(m_ndims, m_shape);
+
+        for (uint32_t i = 0; i < Size(); i++) {
+            tensor.m_storage.at<T>(i) = m_storage.at<T>(i) + value;
+        }
+
+        return tensor;
+    }
+
+    template <typename TT>
+    friend std::ostream& operator<<(std::ostream& os, Tensor<TT>& t);
 
    private:
     int64_t m_offset = 0;
@@ -64,3 +123,32 @@ class Tensor {
     uint32_t* m_stride = nullptr;
     Storage m_storage;
 };
+
+template <typename T>
+std::ostream& operator<<(std::ostream& os, Tensor<T>& t) {
+    os << "Tensor(";
+
+    os << "ndims=" << int(t.m_ndims) << ", offset=" << t.m_offset;
+
+    os << ", shape=[";
+    for (uint8_t i = 0; i < t.m_ndims - 1; i++) {
+        os << t.m_shape[i] << ", ";
+    }
+    os << t.m_shape[t.m_ndims - 1] << "]";
+
+    os << ", stride=[";
+    for (uint8_t i = 0; i < t.m_ndims - 1; i++) {
+        os << t.m_stride[i] << ", ";
+    }
+    os << t.m_stride[t.m_ndims - 1] << "]";
+
+    os << ",\n\r";
+    os << "values=[";
+    for (uint32_t i = 0; i < t.Size() - 1; i++) {
+        os << t[i] << ", ";
+    }
+    os << t[t.Size() - 1] << "]";
+
+    os << ")";
+    return os;
+}

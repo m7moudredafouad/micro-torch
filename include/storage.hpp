@@ -27,18 +27,6 @@ class Storage {
         }
     }
 
-    template <typename T = int8_t>
-    T read(uint32_t offset) const {
-        LOG_IF(FATAL, !m_ptr);
-        return *(reinterpret_cast<T*>(m_ptr) + offset);
-    }
-
-    template <typename T = int8_t>
-    T& read(uint32_t offset) {
-        LOG_IF(FATAL, !m_ptr);
-        return *(reinterpret_cast<T*>(m_ptr) + offset);
-    }
-
     ~Storage() {
         if (m_count_owners == nullptr) return;
 
@@ -48,6 +36,18 @@ class Storage {
 
         if (m_ptr == nullptr) return;
         delete[](char*) m_ptr;
+    }
+
+    template <typename T = int8_t>
+    T at(uint32_t offset) const {
+        LOG_IF(FATAL, !m_ptr);
+        return *(reinterpret_cast<T*>(m_ptr) + offset);
+    }
+
+    template <typename T = int8_t>
+    T& at(uint32_t offset) {
+        LOG_IF(FATAL, !m_ptr);
+        return *(reinterpret_cast<T*>(m_ptr) + offset);
     }
 
    private:
