@@ -35,19 +35,12 @@ class Storage {
         delete m_count_owners;
 
         if (m_ptr == nullptr) return;
-        delete[](char*) m_ptr;
+        delete[] (char*)m_ptr;
     }
 
-    template <typename T = int8_t>
-    T at(uint32_t offset) const {
+    void* at(uint32_t offset) const {
         LOG_IF(FATAL, !m_ptr);
-        return *(reinterpret_cast<T*>(m_ptr) + offset);
-    }
-
-    template <typename T = int8_t>
-    T& at(uint32_t offset) {
-        LOG_IF(FATAL, !m_ptr);
-        return *(reinterpret_cast<T*>(m_ptr) + offset);
+        return (void*)(reinterpret_cast<char*>(m_ptr) + offset);
     }
 
    private:
