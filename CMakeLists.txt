@@ -4,5 +4,8 @@ project(micro_torch)
 
 file(GLOB SRC_FILES src/*.cpp)
 
+add_subdirectory(libs/glog)
+
 add_executable(${PROJECT_NAME} ${SRC_FILES})
-target_include_directories(${SRC_FILES} PRIVATE include)
+target_include_directories(${PROJECT_NAME} PRIVATE include libs/glog/src)
+target_link_libraries(${PROJECT_NAME} PRIVATE glog)
