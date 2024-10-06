@@ -1,54 +1,31 @@
 #pragma once
 #include "includes.hpp"
 
-#define CASE_N_LOOP(n)                                \
-    case n:                                           \
-        element_wise_loop##n(out.m_shape, call_back); \
-        break;
-
-#define ELEMENT_WISE_LOOP(n) \
-    switch (n) {             \
-        CASE_N_LOOP(1);      \
-        CASE_N_LOOP(2);      \
-        CASE_N_LOOP(3);      \
-        CASE_N_LOOP(4);      \
-    }
-
 template <typename T>
 class Tensor;
 
 template <typename CallBackFn>
-void element_wise_loop1(uint32_t* const shape, CallBackFn& call_back) {
+void iterate_tensor(int32_t ndims, uint32_t* const shape, CallBackFn& call_back) {
+    if (ndims <= 0) return;
+    LOG_IF(FATAL, ndims >= 5) << "Looping " << ndims << " times is not yet supported";
     for (uint32_t i = 0; i < shape[0]; i++) {
-        call_back({i});
-    }
-}
-
-template <typename CallBackFn>
-void element_wise_loop2(uint32_t* const shape, CallBackFn& call_back) {
-    for (uint32_t i = 0; i < shape[0]; i++) {
-        for (uint32_t j = 0; j < shape[1]; j++) {
-            call_back({i, j});
+        if (ndims == 1) {
+            call_back({i});
+            continue;
         }
-    }
-}
 
-template <typename CallBackFn>
-void element_wise_loop3(uint32_t* const shape, CallBackFn& call_back) {
-    for (uint32_t i = 0; i < shape[0]; i++) {
         for (uint32_t j = 0; j < shape[1]; j++) {
-            for (uint32_t k = 0; k < shape[2]; k++) {
-                call_back({i, j, k});
+            if (ndims == 2) {
+                call_back({i, j});
+                continue;
             }
-        }
-    }
-}
 
-template <typename CallBackFn>
-void element_wise_loop4(uint32_t* const shape, CallBackFn& call_back) {
-    for (uint32_t i = 0; i < shape[0]; i++) {
-        for (uint32_t j = 0; j < shape[1]; j++) {
             for (uint32_t k = 0; k < shape[2]; k++) {
+                if (ndims == 3) {
+                    call_back({i, j, k});
+                    continue;
+                }
+
                 for (uint32_t l = 0; l < shape[3]; l++) {
                     call_back({i, j, k, l});
                 }
@@ -89,7 +66,7 @@ Tensor<T> add(const Tensor<T>& in1, const Tensor<T>& in2) {
         out[indices] = in1.broadcasted_read(indices) + in2.broadcasted_read(indices);
     };
 
-    ELEMENT_WISE_LOOP(out.m_ndims);
+    iterate_tensor(out.m_ndims, out.m_shape, call_back);
     return out;
 }
 
@@ -101,6 +78,6 @@ Tensor<T> mul(const Tensor<T>& in1, const Tensor<T>& in2) {
         out[indices] = in1.broadcasted_read(indices) * in2.broadcasted_read(indices);
     };
 
-    ELEMENT_WISE_LOOP(out.m_ndims);
+    iterate_tensor(out.m_ndims, out.m_shape, call_back);
     return out;
 }

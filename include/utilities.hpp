@@ -22,8 +22,7 @@ std::ostream& operator<<(std::ostream& os, Tensor<T>& t) {
     }
     os << t.m_stride[t.m_ndims - 1] << "]";
 
-    os << ",\n\r";
-    os << "values=[";
+    os << ", values=[";
     for (uint32_t i = 0; i < t.Size() - 1; i++) {
         os << t[i] << ", ";
     }
