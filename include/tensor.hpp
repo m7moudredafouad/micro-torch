@@ -105,7 +105,7 @@ class Tensor {
             i++;
         }
 
-        return this->operator[](offset);
+        return this->operator[](m_offset + offset);
     }
 
     T& operator[](std::initializer_list<uint32_t> indices) {
@@ -120,18 +120,26 @@ class Tensor {
             i++;
         }
 
-        return this->operator[](offset);
+        return this->operator[](m_offset + offset);
     }
 
     T& at(std::initializer_list<uint32_t> indices) { return this->operator[](indices); }
 
+    Tensor<T> operator+(const Tensor<T>& other) { return add(*this, other); }
+
+    Tensor<T> operator*(const Tensor<T>& other) { return mul(*this, other); }
+
     Tensor<T> operator+(T value) {
-        Tensor<T> tensor(1, (uint32_t [1]){1});
+        Tensor<T> tensor(1, (uint32_t[1]){1});
         tensor[0] = value;
-        return add(*this, tensor);
+        return this->operator+(tensor);
     }
 
-    Tensor<T> operator+(const Tensor<T>& other) { return add(*this, other); }
+    Tensor<T> operator*(T value) {
+        Tensor<T> tensor(1, (uint32_t[1]){1});
+        tensor[0] = value;
+        return this->operator*(tensor);
+    }
 
     void operator=(T value) {
         for (uint32_t i = 0; i < Size(); i++) {
@@ -139,20 +147,14 @@ class Tensor {
         }
     }
 
-    Tensor<T> operator*(T value) {
-        Tensor<T> tensor(m_ndims, m_shape);
-
-        for (uint32_t i = 0; i < Size(); i++) {
-            tensor[i] = this->operator[](i) * value;
-        }
-
-        return tensor;
-    }
-
     template <typename TT>
     friend std::ostream& operator<<(std::ostream& os, Tensor<TT>& t);
     template <typename TT>
+    friend Tensor<TT> get_element_wise_empty_output(const Tensor<TT>& in1, const Tensor<TT>& in2);
+    template <typename TT>
     friend Tensor<TT> add(const Tensor<TT>& in1, const Tensor<TT>& in2);
+    template <typename TT>
+    friend Tensor<TT> mul(const Tensor<TT>& in1, const Tensor<TT>& in2);
 
    private:
     T operator[](uint32_t flatten_index) const {
@@ -184,7 +186,7 @@ class Tensor {
             j++;
         }
 
-        return this->operator[](offset);
+        return this->operator[](m_offset + offset);
     }
 
    private:
