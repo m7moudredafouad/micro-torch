@@ -1,5 +1,3 @@
-#include "kernels.hpp"
-
 #include "tensor.hpp"
 
 template <typename CallBackFn>
@@ -59,33 +57,90 @@ Tensor get_element_wise_empty_output(const Tensor& in1, const Tensor& in2) {
     return Tensor(out_shape);
 }
 
-void add(const Tensor& in1, const Tensor& in2, Tensor& out) {
-    auto call_back = [&](std::initializer_list<uint32_t> indices) {
+Tensor get_matmul_empty_output(const Tensor& in1, const Tensor& in2) {
+    LOG_IF(FATAL, in1.m_shape.size() != in2.m_shape.size()) << "Batch/Broadcast Matmul is not yet supported";
+    int32_t ndims = in1.m_shape.size();
+    LOG_IF(FATAL, ndims == 0) << "Matmul can't operate on tensor with shape = 0";
+    std::vector<uint32_t> out_shape(ndims);
+
+    for (int32_t i = 0; i < ndims - 2; i++) {
+        out_shape[i] = std::max(in1.m_shape[i], in2.m_shape[i]);
+    }
+
+    if (ndims == 1) {
+        LOG_IF(FATAL, in1.m_shape[0] != in2.m_shape[0]) << "Matmul input shapes are not compatible";
+        out_shape[0] = 1;
+    } else {
+        LOG_IF(FATAL, in1.m_shape[ndims - 1] != in2.m_shape[ndims - 2]) << "Matmul input shapes are not compatible";
+        out_shape[ndims - 2] = in1.m_shape[ndims - 2];
+        out_shape[ndims - 1] = in2.m_shape[ndims - 1];
+    }
+    // TODO: set datatpye
+    return Tensor(out_shape);
+}
+
+void add_impl(const Tensor& in1, const Tensor& in2, Tensor& out) {
+    auto call_back = [&](std::vector<uint32_t> indices) {
         out[indices] = in1.broadcasted_read(indices) + in2.broadcasted_read(indices);
     };
 
     iterate_tensor(out.m_shape, call_back);
 }
 
-void sub(const Tensor& in1, const Tensor& in2, Tensor& out) {
-    auto call_back = [&](std::initializer_list<uint32_t> indices) {
+void sub_impl(const Tensor& in1, const Tensor& in2, Tensor& out) {
+    auto call_back = [&](std::vector<uint32_t> indices) {
         out[indices] = in1.broadcasted_read(indices) - in2.broadcasted_read(indices);
     };
 
     iterate_tensor(out.m_shape, call_back);
 }
 
-void mul(const Tensor& in1, const Tensor& in2, Tensor& out) {
-    auto call_back = [&](std::initializer_list<uint32_t> indices) {
+void mul_impl(const Tensor& in1, const Tensor& in2, Tensor& out) {
+    auto call_back = [&](std::vector<uint32_t> indices) {
         out[indices] = in1.broadcasted_read(indices) * in2.broadcasted_read(indices);
     };
 
     iterate_tensor(out.m_shape, call_back);
 }
 
-void div(const Tensor& in1, const Tensor& in2, Tensor& out) {
-    auto call_back = [&](std::initializer_list<uint32_t> indices) {
+void div_impl(const Tensor& in1, const Tensor& in2, Tensor& out) {
+    auto call_back = [&](std::vector<uint32_t> indices) {
         out[indices] = in1.broadcasted_read(indices) / in2.broadcasted_read(indices);
+    };
+
+    iterate_tensor(out.m_shape, call_back);
+}
+
+void matmul_impl(const Tensor& in1, const Tensor& in2, Tensor& out) {
+    auto call_back = [&](std::vector<uint32_t> indices) {
+        int32_t ndims = indices.size();
+        auto& out_value = out[indices];
+        out_value = 0;
+
+        if (ndims == 1) {
+            LOG_IF(FATAL, in1.m_shape.size() != in2.m_shape.size());
+            LOG_IF(FATAL, in1.m_shape.size() != out.m_shape.size());
+            LOG_IF(FATAL, in1.m_shape.size() != 1);
+            LOG_IF(FATAL, in1.m_shape[0] != in2.m_shape[0]);
+
+            for (uint32_t i = 0; i < in1.m_shape[0]; i++) {
+                auto v1 = in1.broadcasted_read(indices);
+                auto v2 = in2.broadcasted_read(indices);
+                out_value = out_value + (v1 * v2);
+            }
+            return;
+        }
+
+        // TODO: Add asserts
+        auto tmp1_indices = indices;
+        auto tmp2_indices = indices;
+        for (uint32_t i = 0; i < out.m_shape[ndims - 2]; i++) {
+            tmp1_indices[ndims - 1] = i;
+            tmp2_indices[ndims - 2] = i;
+            auto v1 = in1.broadcasted_read(tmp1_indices);
+            auto v2 = in2.broadcasted_read(tmp2_indices);
+            out_value = out_value + (v1 * v2);
+        }
     };
 
     iterate_tensor(out.m_shape, call_back);

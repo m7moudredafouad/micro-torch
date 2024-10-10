@@ -2,7 +2,6 @@
 #include <cassert>
 
 #include "includes.hpp"
-#include "kernels.hpp"
 #include "storage.hpp"
 #include "utilities.hpp"
 
@@ -156,11 +155,11 @@ class Tensor {
         }
     }
 
-    Element operator[](std::initializer_list<uint32_t> indices) const {
+    Element operator[](const std::vector<uint32_t>& indices) const {
         return const_cast<Tensor*>(this)->operator[](indices);
     }
 
-    Element& operator[](std::initializer_list<uint32_t> indices) {
+    Element& operator[](const std::vector<uint32_t>& indices) {
         LOG_IF(FATAL, indices.size() != m_shape.size())
             << "Indices size=" << indices.size() << " don't match the full_shape=" << m_shape.size();
         uint32_t offset = 0, i = 0;
@@ -175,29 +174,29 @@ class Tensor {
         return this->operator[](offset);
     }
 
-    Element& at(std::initializer_list<uint32_t> indices) { return this->operator[](indices); }
+    Element& at(const std::vector<uint32_t>& indices) { return this->operator[](indices); }
 
     Tensor operator+(const Tensor& other) {
         Tensor out = get_element_wise_empty_output(*this, other);
-        add(*this, other, out);
+        add_impl(*this, other, out);
         return out;
     }
 
     Tensor operator-(const Tensor& other) {
         Tensor out = get_element_wise_empty_output(*this, other);
-        sub(*this, other, out);
+        sub_impl(*this, other, out);
         return out;
     }
 
     Tensor operator*(const Tensor& other) {
         Tensor out = get_element_wise_empty_output(*this, other);
-        mul(*this, other, out);
+        mul_impl(*this, other, out);
         return out;
     }
 
     Tensor operator/(const Tensor& other) {
         Tensor out = get_element_wise_empty_output(*this, other);
-        div(*this, other, out);
+        div_impl(*this, other, out);
         return out;
     }
 
@@ -212,7 +211,7 @@ class Tensor {
     void operator+=(T value) {
         Tensor tensor({1});
         tensor[0] = Element(value, dtype);
-        add(*this, tensor, *this);
+        add_impl(*this, tensor, *this);
     }
 
     template <typename T>
@@ -226,7 +225,7 @@ class Tensor {
     void operator-=(T value) {
         Tensor tensor({1});
         tensor[0] = Element(value, dtype);
-        sub(*this, tensor, *this);
+        sub_impl(*this, tensor, *this);
     }
 
     template <typename T>
@@ -240,7 +239,7 @@ class Tensor {
     void operator*=(T value) {
         Tensor tensor({1});
         tensor[0] = Element(value, dtype);
-        mul(*this, tensor, *this);
+        mul_impl(*this, tensor, *this);
     }
 
     template <typename T>
@@ -254,7 +253,7 @@ class Tensor {
     void operator/=(T value) {
         Tensor tensor({1});
         tensor[0] = Element(value, dtype);
-        div(*this, tensor, *this);
+        div_impl(*this, tensor, *this);
     }
 
     template <typename T>
@@ -264,12 +263,20 @@ class Tensor {
         }
     }
 
+    Tensor mm(const Tensor& other) {
+        Tensor out = get_matmul_empty_output(*this, other);
+        matmul_impl(*this, other, out);
+        return out;
+    }
+
     friend std::ostream& operator<<(std::ostream& os, Tensor& t);
     friend Tensor get_element_wise_empty_output(const Tensor& in1, const Tensor& in2);
-    friend void add(const Tensor& in1, const Tensor& in2, Tensor& out);
-    friend void sub(const Tensor& in1, const Tensor& in2, Tensor& out);
-    friend void mul(const Tensor& in1, const Tensor& in2, Tensor& out);
-    friend void div(const Tensor& in1, const Tensor& in2, Tensor& out);
+    friend Tensor get_matmul_empty_output(const Tensor& in1, const Tensor& in2);
+    friend void add_impl(const Tensor& in1, const Tensor& in2, Tensor& out);
+    friend void sub_impl(const Tensor& in1, const Tensor& in2, Tensor& out);
+    friend void mul_impl(const Tensor& in1, const Tensor& in2, Tensor& out);
+    friend void div_impl(const Tensor& in1, const Tensor& in2, Tensor& out);
+    friend void matmul_impl(const Tensor& in1, const Tensor& in2, Tensor& out);
 
    private:
     Element operator[](uint32_t offset) const { return const_cast<Tensor*>(this)->operator[](offset); }
@@ -279,7 +286,7 @@ class Tensor {
         return *reinterpret_cast<Element*>(m_storage.at((m_offset + offset) * sizeof(Element)));
     }
 
-    Element broadcasted_read(std::initializer_list<uint32_t> indices) const {
+    Element broadcasted_read(const std::vector<uint32_t>& indices) const {
         int32_t nindecies = indices.size();
         int32_t ndims = m_shape.size();
         int32_t i = 0, j = 0;

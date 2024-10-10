@@ -18,5 +18,17 @@ int main() {
     auto t4 = t1 + t3;
     LOG(INFO) << t4;
 
+    Tensor tx({3, 6});
+    tx = 1;
+    t1 = 2;
+    auto t5 = t1.mm(tx);
+    LOG(INFO) << t5;
+
+    Tensor ty({3}), tz({3});
+    ty = 1;
+    tz = 2;
+    auto t6 = ty.mm(tz);
+    LOG(INFO) << t6;
+
     return 0;
 }
