@@ -177,13 +177,29 @@ class Tensor {
 
     Element& at(std::initializer_list<uint32_t> indices) { return this->operator[](indices); }
 
-    Tensor operator+(const Tensor& other) { return add(*this, other); }
+    Tensor operator+(const Tensor& other) {
+        Tensor out = get_element_wise_empty_output(*this, other);
+        add(*this, other, out);
+        return out;
+    }
 
-    Tensor operator-(const Tensor& other) { return sub(*this, other); }
+    Tensor operator-(const Tensor& other) {
+        Tensor out = get_element_wise_empty_output(*this, other);
+        sub(*this, other, out);
+        return out;
+    }
 
-    Tensor operator*(const Tensor& other) { return mul(*this, other); }
+    Tensor operator*(const Tensor& other) {
+        Tensor out = get_element_wise_empty_output(*this, other);
+        mul(*this, other, out);
+        return out;
+    }
 
-    Tensor operator/(const Tensor& other) { return div(*this, other); }
+    Tensor operator/(const Tensor& other) {
+        Tensor out = get_element_wise_empty_output(*this, other);
+        div(*this, other, out);
+        return out;
+    }
 
     template <typename T>
     Tensor operator+(T value) {
@@ -196,7 +212,7 @@ class Tensor {
     void operator+=(T value) {
         Tensor tensor({1});
         tensor[0] = Element(value, dtype);
-        *this = this->operator+(tensor);
+        add(*this, tensor, *this);
     }
 
     template <typename T>
@@ -210,7 +226,7 @@ class Tensor {
     void operator-=(T value) {
         Tensor tensor({1});
         tensor[0] = Element(value, dtype);
-        *this = this->operator-(tensor);
+        sub(*this, tensor, *this);
     }
 
     template <typename T>
@@ -224,7 +240,7 @@ class Tensor {
     void operator*=(T value) {
         Tensor tensor({1});
         tensor[0] = Element(value, dtype);
-        *this = this->operator*(tensor);
+        mul(*this, tensor, *this);
     }
 
     template <typename T>
@@ -238,7 +254,7 @@ class Tensor {
     void operator/=(T value) {
         Tensor tensor({1});
         tensor[0] = Element(value, dtype);
-        *this = this->operator/(tensor);
+        div(*this, tensor, *this);
     }
 
     template <typename T>
@@ -250,10 +266,10 @@ class Tensor {
 
     friend std::ostream& operator<<(std::ostream& os, Tensor& t);
     friend Tensor get_element_wise_empty_output(const Tensor& in1, const Tensor& in2);
-    friend Tensor add(const Tensor& in1, const Tensor& in2);
-    friend Tensor sub(const Tensor& in1, const Tensor& in2);
-    friend Tensor mul(const Tensor& in1, const Tensor& in2);
-    friend Tensor div(const Tensor& in1, const Tensor& in2);
+    friend void add(const Tensor& in1, const Tensor& in2, Tensor& out);
+    friend void sub(const Tensor& in1, const Tensor& in2, Tensor& out);
+    friend void mul(const Tensor& in1, const Tensor& in2, Tensor& out);
+    friend void div(const Tensor& in1, const Tensor& in2, Tensor& out);
 
    private:
     Element operator[](uint32_t offset) const { return const_cast<Tensor*>(this)->operator[](offset); }
