@@ -94,18 +94,7 @@ class Tensor {
     }
 
     T operator[](std::initializer_list<uint32_t> indices) const {
-        LOG_IF(FATAL, (int8_t)indices.size() != m_ndims)
-            << "Indices size=" << indices.size() << " don't match the full_shape=" << int(m_ndims);
-        uint32_t offset = 0, i = 0;
-
-        for (auto idx : indices) {
-            LOG_IF(FATAL, idx >= m_shape[i])
-                << "index is out of range, full_shape= " << m_shape[i] << " and index=" << idx;
-            offset += idx * m_stride[i];
-            i++;
-        }
-
-        return this->operator[](m_offset + offset);
+        return const_cast<Tensor<T>*>(this)->operator[](indices);
     }
 
     T& operator[](std::initializer_list<uint32_t> indices) {
@@ -157,14 +146,13 @@ class Tensor {
     friend Tensor<TT> mul(const Tensor<TT>& in1, const Tensor<TT>& in2);
 
    private:
-    T operator[](uint32_t flatten_index) const {
-        LOG_IF(FATAL, flatten_index >= Size()) << "index out of range";
-        return *reinterpret_cast<T*>(m_storage.at(flatten_index * sizeof(T)));
+    T operator[](uint32_t offset) const {
+        return const_cast<Tensor<T>*>(this)->operator[](offset);
     }
 
-    T& operator[](uint32_t flatten_index) {
-        LOG_IF(FATAL, flatten_index >= Size()) << "index out of range";
-        return *reinterpret_cast<T*>(m_storage.at(flatten_index * sizeof(T)));
+    T& operator[](uint32_t offset) {
+        LOG_IF(FATAL, offset >= Size()) << "index out of range";
+        return *reinterpret_cast<T*>(m_storage.at(offset * sizeof(T)));
     }
 
     T broadcasted_read(std::initializer_list<uint32_t> indices) const {
