@@ -40,6 +40,7 @@ class Storage {
 
     void* at(uint32_t offset) const {
         LOG_IF(FATAL, !m_ptr);
+        LOG_IF(FATAL, offset >= m_size);
         return (void*)(reinterpret_cast<char*>(m_ptr) + offset);
     }
 

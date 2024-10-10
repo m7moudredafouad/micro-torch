@@ -172,14 +172,18 @@ class Tensor {
             i++;
         }
 
-        return this->operator[](m_offset + offset);
+        return this->operator[](offset);
     }
 
     Element& at(std::initializer_list<uint32_t> indices) { return this->operator[](indices); }
 
     Tensor operator+(const Tensor& other) { return add(*this, other); }
 
+    Tensor operator-(const Tensor& other) { return sub(*this, other); }
+
     Tensor operator*(const Tensor& other) { return mul(*this, other); }
+
+    Tensor operator/(const Tensor& other) { return div(*this, other); }
 
     template <typename T>
     Tensor operator+(T value) {
@@ -189,10 +193,52 @@ class Tensor {
     }
 
     template <typename T>
+    void operator+=(T value) {
+        Tensor tensor({1});
+        tensor[0] = Element(value, dtype);
+        *this = this->operator+(tensor);
+    }
+
+    template <typename T>
+    Tensor operator-(T value) {
+        Tensor tensor({1});
+        tensor[0] = Element(value, dtype);
+        return this->operator-(tensor);
+    }
+
+    template <typename T>
+    void operator-=(T value) {
+        Tensor tensor({1});
+        tensor[0] = Element(value, dtype);
+        *this = this->operator-(tensor);
+    }
+
+    template <typename T>
     Tensor operator*(T value) {
         Tensor tensor({1});
         tensor[0] = Element(value, dtype);
         return this->operator*(tensor);
+    }
+
+    template <typename T>
+    void operator*=(T value) {
+        Tensor tensor({1});
+        tensor[0] = Element(value, dtype);
+        *this = this->operator*(tensor);
+    }
+
+    template <typename T>
+    Tensor operator/(T value) {
+        Tensor tensor({1});
+        tensor[0] = Element(value, dtype);
+        return this->operator/(tensor);
+    }
+
+    template <typename T>
+    void operator/=(T value) {
+        Tensor tensor({1});
+        tensor[0] = Element(value, dtype);
+        *this = this->operator/(tensor);
     }
 
     template <typename T>
@@ -205,14 +251,16 @@ class Tensor {
     friend std::ostream& operator<<(std::ostream& os, Tensor& t);
     friend Tensor get_element_wise_empty_output(const Tensor& in1, const Tensor& in2);
     friend Tensor add(const Tensor& in1, const Tensor& in2);
+    friend Tensor sub(const Tensor& in1, const Tensor& in2);
     friend Tensor mul(const Tensor& in1, const Tensor& in2);
+    friend Tensor div(const Tensor& in1, const Tensor& in2);
 
    private:
     Element operator[](uint32_t offset) const { return const_cast<Tensor*>(this)->operator[](offset); }
 
     Element& operator[](uint32_t offset) {
         LOG_IF(FATAL, offset >= Size()) << "index out of range";
-        return *reinterpret_cast<Element*>(m_storage.at(offset * sizeof(Element)));
+        return *reinterpret_cast<Element*>(m_storage.at((m_offset + offset) * sizeof(Element)));
     }
 
     Element broadcasted_read(std::initializer_list<uint32_t> indices) const {
@@ -236,7 +284,7 @@ class Tensor {
             j++;
         }
 
-        return this->operator[](m_offset + offset);
+        return this->operator[](offset);
     }
 
    private:

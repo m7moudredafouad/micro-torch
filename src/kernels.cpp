@@ -2,7 +2,6 @@
 
 #include "tensor.hpp"
 
-
 template <typename CallBackFn>
 void iterate_tensor(const std::vector<uint32_t>& shape, CallBackFn& call_back) {
     int32_t ndims = shape.size();
@@ -71,11 +70,33 @@ Tensor add(const Tensor& in1, const Tensor& in2) {
     return out;
 }
 
+Tensor sub(const Tensor& in1, const Tensor& in2) {
+    Tensor out = get_element_wise_empty_output(in1, in2);
+
+    auto call_back = [&](std::initializer_list<uint32_t> indices) {
+        out[indices] = in1.broadcasted_read(indices) - in2.broadcasted_read(indices);
+    };
+
+    iterate_tensor(out.m_shape, call_back);
+    return out;
+}
+
 Tensor mul(const Tensor& in1, const Tensor& in2) {
     Tensor out = get_element_wise_empty_output(in1, in2);
 
     auto call_back = [&](std::initializer_list<uint32_t> indices) {
         out[indices] = in1.broadcasted_read(indices) * in2.broadcasted_read(indices);
+    };
+
+    iterate_tensor(out.m_shape, call_back);
+    return out;
+}
+
+Tensor div(const Tensor& in1, const Tensor& in2) {
+    Tensor out = get_element_wise_empty_output(in1, in2);
+
+    auto call_back = [&](std::initializer_list<uint32_t> indices) {
+        out[indices] = in1.broadcasted_read(indices) / in2.broadcasted_read(indices);
     };
 
     iterate_tensor(out.m_shape, call_back);
