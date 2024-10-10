@@ -1,6 +1,6 @@
 #include "tensor.hpp"
 
-int main(int arc, char* argv[]) {
+int main() {
     Tensor t1({3, 3}), t2({1, 3});
     t1 = t1 * 0 + 2;
     LOG(INFO) << t1;

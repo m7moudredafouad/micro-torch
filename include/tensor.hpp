@@ -121,75 +121,22 @@ class Tensor {
     };
 
    public:
-    Tensor(uint32_t ndims, uint32_t* const shape) : m_ndims(ndims) {
-        m_shape = new uint32_t[m_ndims];
-        m_stride = new uint32_t[m_ndims];
-        std::copy(&shape[0], &shape[m_ndims], m_shape);
+    Tensor(std::vector<uint32_t> shape) : m_shape(std::move(shape)) {
         SetDefaultStrides();
-
         m_storage = Storage(NumberOfBytes());
     }
 
-    Tensor(const std::vector<uint32_t>& shape) : m_ndims(shape.size()) {
-        m_shape = new uint32_t[m_ndims];
-        m_stride = new uint32_t[m_ndims];
-        std::copy(&shape[0], &shape[m_ndims], m_shape);
-        SetDefaultStrides();
-
-        m_storage = Storage(NumberOfBytes());
-    }
-
-    Tensor(const std::vector<uint32_t>& shape, const std::vector<uint32_t>& stride) : m_ndims(shape.size()) {
+    Tensor(std::vector<uint32_t> shape, std::vector<uint32_t>& stride)
+        : m_shape(std::move(shape)), m_stride(std::move(stride)) {
         LOG_IF(FATAL, shape.size() != stride.size());
 
-        m_shape = new uint32_t[m_ndims];
-        m_stride = new uint32_t[m_ndims];
-
-        std::copy(&shape[0], &shape[m_ndims], m_shape);
-        std::copy(&stride[0], &stride[m_ndims], m_shape);
         m_storage = Storage(NumberOfBytes());
-    }
-
-    Tensor(const Tensor& other) {
-        m_offset = other.m_offset;
-        m_ndims = other.m_ndims;
-        m_shape = new uint32_t[m_ndims];
-        m_stride = new uint32_t[m_ndims];
-        std::copy(&other.m_shape[0], &other.m_shape[m_ndims], m_shape);
-        std::copy(&other.m_stride[0], &other.m_stride[m_ndims], m_stride);
-        m_storage = other.m_storage;
-        dtype = other.dtype;
-    }
-
-    Tensor& operator=(const Tensor& other) {
-        if (this == &other) return *this;
-
-        m_offset = other.m_offset;
-        m_ndims = other.m_ndims;
-        m_shape = new uint32_t[m_ndims];
-        m_stride = new uint32_t[m_ndims];
-        std::copy(&other.m_shape[0], &other.m_shape[m_ndims], m_shape);
-        std::copy(&other.m_stride[0], &other.m_stride[m_ndims], m_stride);
-        m_storage = other.m_storage;
-        dtype = other.dtype;
-
-        return *this;
-    }
-
-    ~Tensor() {
-        if (m_shape) {
-            delete[] m_shape;
-        }
-
-        if (m_stride) {
-            delete[] m_stride;
-        }
     }
 
     uint32_t Size() const {
-        LOG_IF(FATAL, !m_shape);
+        LOG_IF(FATAL, m_shape.size() == 0);
         uint32_t size = 1;
-        for (int8_t i = 0; i < m_ndims; i++) {
+        for (size_t i = 0; i < m_shape.size(); i++) {
             size *= m_shape[i];
         }
 
@@ -199,12 +146,12 @@ class Tensor {
     uint32_t NumberOfBytes() const { return Size() * sizeof(Element); }
 
     void SetDefaultStrides() {
-        LOG_IF(FATAL, !m_stride);
-        LOG_IF(FATAL, !m_shape);
+        LOG_IF(FATAL, m_shape.size() == 0);
 
-        m_stride[m_ndims - 1] = 1;
+        m_stride.resize(m_shape.size());
+        m_stride[m_shape.size() - 1] = 1;
 
-        for (int8_t i = (int8_t)m_ndims - 2; i >= 0; i--) {
+        for (int8_t i = (int8_t)m_shape.size() - 2; i >= 0; i--) {
             m_stride[i] = m_stride[i + 1] * m_shape[i + 1];
         }
     }
@@ -214,8 +161,8 @@ class Tensor {
     }
 
     Element& operator[](std::initializer_list<uint32_t> indices) {
-        LOG_IF(FATAL, (int8_t)indices.size() != m_ndims)
-            << "Indices size=" << indices.size() << " don't match the full_shape=" << int(m_ndims);
+        LOG_IF(FATAL, indices.size() != m_shape.size())
+            << "Indices size=" << indices.size() << " don't match the full_shape=" << m_shape.size();
         uint32_t offset = 0, i = 0;
 
         for (auto idx : indices) {
@@ -236,14 +183,14 @@ class Tensor {
 
     template <typename T>
     Tensor operator+(T value) {
-        Tensor tensor(1, (uint32_t[1]){1});
+        Tensor tensor({1});
         tensor[0] = Element(value, dtype);
         return this->operator+(tensor);
     }
 
     template <typename T>
     Tensor operator*(T value) {
-        Tensor tensor(1, (uint32_t[1]){1});
+        Tensor tensor({1});
         tensor[0] = Element(value, dtype);
         return this->operator*(tensor);
     }
@@ -269,11 +216,13 @@ class Tensor {
     }
 
     Element broadcasted_read(std::initializer_list<uint32_t> indices) const {
-        int8_t ndims = indices.size();
-        uint32_t offset = 0, i = 0, j = 0;
+        int32_t nindecies = indices.size();
+        int32_t ndims = m_shape.size();
+        int32_t i = 0, j = 0;
+        uint32_t offset = 0;
 
         for (auto idx : indices) {
-            if ((ndims - i) > m_ndims) {
+            if ((nindecies - i) > ndims) {
                 i++;
                 continue;
             }
@@ -293,9 +242,7 @@ class Tensor {
    private:
     Tensor::Element::Type dtype = Tensor::Element::Type::FLOAT32;
     int64_t m_offset = 0;
-    int8_t m_ndims = 0;
 
-    uint32_t* m_shape = nullptr;
-    uint32_t* m_stride = nullptr;
+    std::vector<uint32_t> m_shape, m_stride;
     Storage m_storage;
 };
