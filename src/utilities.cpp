@@ -1,5 +1,22 @@
 #include "tensor.hpp"
 
+#define PRINT_ELEMENT(dtype, element, os)                                   \
+    {                                                                       \
+        switch (dtype) {                                                    \
+            case Tensor::Type::UINT32:                                      \
+                os << uint32_t(element);                                    \
+                break;                                                      \
+            case Tensor::Type::INT32:                                       \
+                os << int32_t(element);                                     \
+                break;                                                      \
+            case Tensor::Type::FLOAT32:                                     \
+                os << float(element);                                       \
+                break;                                                      \
+            default:                                                        \
+                LOG(FATAL) << "Can't print value with unknown tensor type"; \
+        }                                                                   \
+    }
+
 std::ostream& operator<<(std::ostream& os, Tensor& t) {
     os << "Tensor(";
 
@@ -21,7 +38,7 @@ std::ostream& operator<<(std::ostream& os, Tensor& t) {
     os << "\nvalues=[";
     for (uint32_t i = 0; ndims >= 1 && i < t.m_shape[0]; i++) {
         if (ndims == 1) {
-            os << t[{i}];
+            PRINT_ELEMENT(t.m_dtype, (t[{i}]), os);
             if (i < t.m_shape[0] - 1) {
                 os << ", ";
             }
@@ -30,7 +47,7 @@ std::ostream& operator<<(std::ostream& os, Tensor& t) {
         os << "[";
         for (uint32_t j = 0; ndims >= 2 && j < t.m_shape[1]; j++) {
             if (ndims == 2) {
-                os << t[{i, j}];
+                PRINT_ELEMENT(t.m_dtype, (t[{i, j}]), os);
                 if (j < t.m_shape[1] - 1) {
                     os << ", ";
                 }
@@ -39,7 +56,7 @@ std::ostream& operator<<(std::ostream& os, Tensor& t) {
             os << "[";
             for (uint32_t k = 0; ndims >= 3 && k < t.m_shape[2]; k++) {
                 if (ndims == 3) {
-                    os << t[{i, j, k}];
+                    PRINT_ELEMENT(t.m_dtype, (t[{i, j, k}]), os);
                     if (k < t.m_shape[2] - 1) {
                         os << ", ";
                     }
@@ -47,7 +64,7 @@ std::ostream& operator<<(std::ostream& os, Tensor& t) {
                 }
                 os << "[";
                 for (uint32_t l = 0; ndims >= 4 && l < t.m_shape[3]; l++) {
-                    os << t[{i, j, k, l}];
+                    PRINT_ELEMENT(t.m_dtype, (t[{i, j, k, l}]), os);
                     if (l < t.m_shape[3] - 1) {
                         os << ", ";
                     }

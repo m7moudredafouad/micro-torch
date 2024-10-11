@@ -6,16 +6,14 @@
 
 class Tensor {
    public:
+    enum class Type : uint8_t { UINT32 = 0, INT32, FLOAT32, UNKONWN };
+
     struct Element {
-        enum class Type : uint8_t { UINT32 = 0, INT32, FLOAT32, RESERVED_MAX_VALUE };
-
         union Data {
-            int32_t i32 = 0;
+            uint32_t u32 = 0;
+            int32_t i32;
             float f32;
-        };
-
-        Type dtype{Type::UINT32};
-        Data data;
+        } data;
 
         Element() = default;
 
@@ -23,109 +21,36 @@ class Tensor {
         Element(T value) {
             if constexpr (std::is_same_v<T, int32_t>) {
                 data.i32 = value;
-                dtype = Type::INT32;
             } else if constexpr (std::is_same_v<T, uint32_t>) {
                 data.i32 = value;
-                dtype = Type::UINT32;
             } else if constexpr (std::is_same_v<T, float> || std::is_same_v<T, double>) {
                 data.f32 = float(value);
-                dtype = Type::FLOAT32;
             } else {
                 LOG(FATAL) << "Element Type is not supported";
             }
         }
 
-        template <typename T>
-        Element(T value, Type type) {
-            dtype = type;
-            switch (dtype) {
-                case Type::UINT32:
-                    data.i32 = uint32_t(value);
-                    break;
-                case Type::INT32:
-                    data.i32 = int32_t(value);
-                    break;
-                case Type::FLOAT32:
-                    data.f32 = float(value);
-                    break;
-                default:
-                    LOG(FATAL) << "Element Type is not supported";
-            }
-        }
+        operator float() const { return this->data.f32; }
 
-#define READ_DATA(element) ((element).dtype == Type::FLOAT32 ? (element).data.f32 : (element).data.i32)
+        operator float&() { return this->data.f32; }
 
-        operator float() const { return (float)READ_DATA(*this); }
+        operator int32_t() const { return this->data.i32; }
 
-        operator int32_t() const { return (int32_t)READ_DATA(*this); }
+        operator int32_t&() { return this->data.i32; }
 
-        operator uint32_t() const { return (uint32_t)READ_DATA(*this); }
+        operator uint32_t() const { return this->data.u32; }
 
-        friend std::ostream& operator<<(std::ostream& os, Element& element) {
-            os << READ_DATA(element);
-            return os;
-        }
-
-#undef READ_DATA
-
-#define EXECUTE_OPERATION(out, first, second, operation)                     \
-    {                                                                        \
-        out.dtype = std::max(dtype, other.dtype);                            \
-        if (out.dtype >= Type::RESERVED_MAX_VALUE) {                         \
-            out.dtype = std::min(dtype, other.dtype);                        \
-        }                                                                    \
-        switch ((out).dtype) {                                               \
-            case Type::UINT32:                                               \
-                (out).data.i32 = uint32_t(first) operation uint32_t(second); \
-                break;                                                       \
-            case Type::INT32:                                                \
-                (out).data.i32 = int32_t(first) operation int32_t(second);   \
-                break;                                                       \
-            case Type::FLOAT32:                                              \
-                (out).data.f32 = float(first) operation float(second);       \
-                break;                                                       \
-            default:                                                         \
-                (out).dtype = Type::UINT32;                                  \
-                (out).data.i32 = 0;                                          \
-                LOG(WARNING) << "Element Type is not supported";             \
-        }                                                                    \
-    }
-
-        Element operator+(const Element& other) {
-            Element out;
-            EXECUTE_OPERATION(out, (*this), other, +);
-            return out;
-        }
-
-        Element operator-(const Element& other) {
-            Element out;
-            EXECUTE_OPERATION(out, (*this), other, -);
-            return out;
-        }
-
-        Element operator*(const Element& other) {
-            Element out;
-            EXECUTE_OPERATION(out, (*this), other, *);
-            return out;
-        }
-
-        Element operator/(const Element& other) {
-            Element out;
-            EXECUTE_OPERATION(out, (*this), other, /);
-            return out;
-        }
-
-#undef EXECUTE_OPERATION
+        operator uint32_t&() { return this->data.u32; }
     };
 
    public:
-    Tensor(std::vector<uint32_t> shape) : m_shape(std::move(shape)) {
+    Tensor(std::vector<uint32_t> shape, Type dtype = Type::FLOAT32) : m_dtype(dtype), m_shape(std::move(shape)) {
         SetDefaultStrides();
         m_storage = Storage(NumberOfBytes());
     }
 
-    Tensor(std::vector<uint32_t> shape, std::vector<uint32_t>& stride)
-        : m_shape(std::move(shape)), m_stride(std::move(stride)) {
+    Tensor(std::vector<uint32_t> shape, std::vector<uint32_t>& stride, Type dtype = Type::FLOAT32)
+        : m_dtype(dtype), m_shape(std::move(shape)), m_stride(std::move(stride)) {
         LOG_IF(FATAL, shape.size() != stride.size());
 
         m_storage = Storage(NumberOfBytes());
@@ -199,68 +124,87 @@ class Tensor {
         return out;
     }
 
+#define WRITE_ELEMENT(out, value)                                           \
+    {                                                                       \
+        switch (m_dtype) {                                                  \
+            case Type::UINT32:                                              \
+                out.data.i32 = uint32_t(value);                             \
+                break;                                                      \
+            case Type::INT32:                                               \
+                out.data.i32 = int32_t(value);                              \
+                break;                                                      \
+            case Type::FLOAT32:                                             \
+                out.data.f32 = float(value);                                \
+                break;                                                      \
+            default:                                                        \
+                LOG(FATAL) << "Can't write value with unknown tensor type"; \
+        }                                                                   \
+    }
+
     template <typename T>
     Tensor operator+(T value) {
         Tensor tensor({1});
-        tensor[0] = Element(value, dtype);
+        WRITE_ELEMENT(tensor[0], value);
         return this->operator+(tensor);
     }
 
     template <typename T>
     void operator+=(T value) {
         Tensor tensor({1});
-        tensor[0] = Element(value, dtype);
+        WRITE_ELEMENT(tensor[0], value);
         add_impl(*this, tensor, *this);
     }
 
     template <typename T>
     Tensor operator-(T value) {
         Tensor tensor({1});
-        tensor[0] = Element(value, dtype);
+        WRITE_ELEMENT(tensor[0], value);
         return this->operator-(tensor);
     }
 
     template <typename T>
     void operator-=(T value) {
         Tensor tensor({1});
-        tensor[0] = Element(value, dtype);
+        WRITE_ELEMENT(tensor[0], value);
         sub_impl(*this, tensor, *this);
     }
 
     template <typename T>
     Tensor operator*(T value) {
         Tensor tensor({1});
-        tensor[0] = Element(value, dtype);
+        WRITE_ELEMENT(tensor[0], value);
         return this->operator*(tensor);
     }
 
     template <typename T>
     void operator*=(T value) {
         Tensor tensor({1});
-        tensor[0] = Element(value, dtype);
+        WRITE_ELEMENT(tensor[0], value);
         mul_impl(*this, tensor, *this);
     }
 
     template <typename T>
     Tensor operator/(T value) {
         Tensor tensor({1});
-        tensor[0] = Element(value, dtype);
+        WRITE_ELEMENT(tensor[0], value);
         return this->operator/(tensor);
     }
 
     template <typename T>
     void operator/=(T value) {
         Tensor tensor({1});
-        tensor[0] = Element(value, dtype);
+        WRITE_ELEMENT(tensor[0], value);
         div_impl(*this, tensor, *this);
     }
 
     template <typename T>
     void operator=(T value) {
         for (uint32_t i = 0; i < Size(); i++) {
-            this->operator[](i) = Element(value, dtype);
+            WRITE_ELEMENT(this->operator[](i), value);
         }
     }
+
+#undef WRITE_ELEMENT
 
     Tensor mm(const Tensor& other) {
         Tensor out = get_matmul_empty_output(*this, other);
@@ -310,7 +254,7 @@ class Tensor {
     }
 
    private:
-    Tensor::Element::Type dtype = Tensor::Element::Type::FLOAT32;
+    Tensor::Type m_dtype = Tensor::Type::FLOAT32;
     int64_t m_offset = 0;
 
     std::vector<uint32_t> m_shape, m_stride;
