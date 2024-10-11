@@ -177,8 +177,6 @@ void matmul_impl(const Tensor& in1, const Tensor& in2, Tensor& out) {
             Tensor::Element tmp_value;
             EXECUTE_OPERATION(tmp_value, v1, v2, out.m_dtype, *);
             EXECUTE_OPERATION(out_value, out_value, tmp_value, out.m_dtype, +);
-
-            // out_value = out_value + (v1 * v2);
         }
     };
 
