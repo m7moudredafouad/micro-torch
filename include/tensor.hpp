@@ -3,7 +3,6 @@
 
 #include "includes.hpp"
 #include "storage.hpp"
-#include "utilities.hpp"
 
 class Tensor {
    public:
