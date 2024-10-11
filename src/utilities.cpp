@@ -1,6 +1,3 @@
-
-#include "utilities.hpp"
-
 #include "tensor.hpp"
 
 std::ostream& operator<<(std::ostream& os, Tensor& t) {
