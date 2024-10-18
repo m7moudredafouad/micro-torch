@@ -1,4 +1,7 @@
 #pragma once
+#include <functional>
+#include <unordered_set>
+
 #include "includes.hpp"
 #include "storage.hpp"
 
@@ -42,6 +45,8 @@ class Tensor {
     };
 
    public:
+    Tensor() = default;
+
     Tensor(std::vector<uint32_t> shape, Type dtype = Type::FLOAT32) : m_dtype(dtype), m_shape(std::move(shape)) {
         SetDefaultStrides();
         m_storage = Storage(NumberOfBytes());
@@ -57,6 +62,11 @@ class Tensor {
     uint32_t Size() const;
 
     uint32_t NumberOfBytes() const { return Size() * sizeof(Element); }
+
+    void requires_grad(bool requires_grad) {
+        LOG_IF(FATAL, m_grad_fn != nullptr) << "you can only change requires_grad flags of leaf variables";
+        m_requires_grad = requires_grad;
+    }
 
     void SetDefaultStrides();
 
@@ -153,16 +163,9 @@ class Tensor {
         }
     }
 
-#undef WRITE_ELEMENT
+    void backward();
 
-    friend std::ostream& operator<<(std::ostream& os, Tensor& t);
-    friend Tensor get_element_wise_empty_output(const Tensor& in1, const Tensor& in2);
-    friend Tensor get_matmul_empty_output(const Tensor& in1, const Tensor& in2);
-    friend void add_impl(const Tensor& in1, const Tensor& in2, Tensor& out);
-    friend void sub_impl(const Tensor& in1, const Tensor& in2, Tensor& out);
-    friend void mul_impl(const Tensor& in1, const Tensor& in2, Tensor& out);
-    friend void div_impl(const Tensor& in1, const Tensor& in2, Tensor& out);
-    friend void matmul_impl(const Tensor& in1, const Tensor& in2, Tensor& out);
+#undef WRITE_ELEMENT
 
    private:
     Element operator[](uint32_t offset) const { return const_cast<Tensor*>(this)->operator[](offset); }
@@ -173,8 +176,45 @@ class Tensor {
 
    private:
     Tensor::Type m_dtype = Tensor::Type::FLOAT32;
+    bool m_requires_grad = false;
     int64_t m_offset = 0;
 
+   private:
     std::vector<uint32_t> m_shape, m_stride;
     Storage m_storage;
+
+   private:
+    std::vector<std::shared_ptr<Tensor>> m_parents;
+    std::function<void(Tensor&)> m_grad_fn;
+
+   public:
+    std::shared_ptr<Tensor> grad;
+
+   public:
+    friend std::ostream& operator<<(std::ostream& os, Tensor& t);
+    friend Tensor get_element_wise_empty_output(const Tensor& in1, const Tensor& in2);
+    friend Tensor get_matmul_empty_output(const Tensor& in1, const Tensor& in2);
+
+    // Forward Functions
+    static void add_impl(const Tensor& in1, const Tensor& in2, Tensor& out);
+    static void sub_impl(const Tensor& in1, const Tensor& in2, Tensor& out);
+    static void mul_impl(const Tensor& in1, const Tensor& in2, Tensor& out);
+    static void div_impl(const Tensor& in1, const Tensor& in2, Tensor& out);
+    static void matmul_impl(const Tensor& in1, const Tensor& in2, Tensor& out);
+
+    // Backward Functions
+    static void add_backward_impl(Tensor& out);
+    static void sub_backward_impl(Tensor& out);
+    static void mul_backward_impl(Tensor& out);
+    static void div_backward_impl(Tensor& out);
+    static void matmul_backward_impl(Tensor& out);
+
+    void topological_sort(Tensor& curr, std::vector<Tensor*>& list, std::unordered_set<Tensor*>& visited);
+
+    static void with_no_grad() { Tensor::enable_global_grad = false; }
+
+    static void with_grad() { Tensor::enable_global_grad = true; }
+
+   private:
+    static bool enable_global_grad;
 };

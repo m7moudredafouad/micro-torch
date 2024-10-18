@@ -110,7 +110,7 @@ Tensor get_matmul_empty_output(const Tensor& in1, const Tensor& in2) {
     return Tensor(out_shape, get_output_type(in1.m_dtype, in2.m_dtype));
 }
 
-void add_impl(const Tensor& in1, const Tensor& in2, Tensor& out) {
+void Tensor::add_impl(const Tensor& in1, const Tensor& in2, Tensor& out) {
     auto call_back = [&](std::vector<uint32_t> indices) {
         EXECUTE_OPERATION(out[indices], in1.broadcasted_read(indices), in2.broadcasted_read(indices), out.m_dtype, +);
     };
@@ -118,7 +118,7 @@ void add_impl(const Tensor& in1, const Tensor& in2, Tensor& out) {
     iterate_tensor(out.m_shape, call_back);
 }
 
-void sub_impl(const Tensor& in1, const Tensor& in2, Tensor& out) {
+void Tensor::sub_impl(const Tensor& in1, const Tensor& in2, Tensor& out) {
     auto call_back = [&](std::vector<uint32_t> indices) {
         EXECUTE_OPERATION(out[indices], in1.broadcasted_read(indices), in2.broadcasted_read(indices), out.m_dtype, -);
     };
@@ -126,7 +126,7 @@ void sub_impl(const Tensor& in1, const Tensor& in2, Tensor& out) {
     iterate_tensor(out.m_shape, call_back);
 }
 
-void mul_impl(const Tensor& in1, const Tensor& in2, Tensor& out) {
+void Tensor::mul_impl(const Tensor& in1, const Tensor& in2, Tensor& out) {
     auto call_back = [&](std::vector<uint32_t> indices) {
         EXECUTE_OPERATION(out[indices], in1.broadcasted_read(indices), in2.broadcasted_read(indices), out.m_dtype, *);
     };
@@ -134,7 +134,7 @@ void mul_impl(const Tensor& in1, const Tensor& in2, Tensor& out) {
     iterate_tensor(out.m_shape, call_back);
 }
 
-void div_impl(const Tensor& in1, const Tensor& in2, Tensor& out) {
+void Tensor::div_impl(const Tensor& in1, const Tensor& in2, Tensor& out) {
     auto call_back = [&](std::vector<uint32_t> indices) {
         EXECUTE_OPERATION(out[indices], in1.broadcasted_read(indices), in2.broadcasted_read(indices), out.m_dtype, /);
     };
@@ -142,7 +142,7 @@ void div_impl(const Tensor& in1, const Tensor& in2, Tensor& out) {
     iterate_tensor(out.m_shape, call_back);
 }
 
-void matmul_impl(const Tensor& in1, const Tensor& in2, Tensor& out) {
+void Tensor::matmul_impl(const Tensor& in1, const Tensor& in2, Tensor& out) {
     auto call_back = [&](std::vector<uint32_t> indices) {
         int32_t ndims = indices.size();
         auto& out_value = out[indices];
@@ -181,4 +181,104 @@ void matmul_impl(const Tensor& in1, const Tensor& in2, Tensor& out) {
     };
 
     iterate_tensor(out.m_shape, call_back);
+}
+
+void Tensor::add_backward_impl(Tensor& out) {
+    if (!out.m_requires_grad) return;
+    LOG_IF(FATAL, !out.grad) << "Grad tensor is not initialized";
+    LOG_IF(FATAL, out.m_parents.size() != 2) << "Add backward function expected 2 parents only";
+    LOG_IF(FATAL, nullptr == out.m_parents[0]);
+    LOG_IF(FATAL, nullptr == out.m_parents[1]);
+
+    with_no_grad();
+
+    auto& in1 = *out.m_parents[0];
+    auto& in2 = *out.m_parents[1];
+
+    if (!in1.grad) {
+        in1.grad = std::make_shared<Tensor>(in1.m_shape);
+        *(in1.grad) = 0;
+    }
+
+    if (!in2.grad) {
+        in2.grad = std::make_shared<Tensor>(in2.m_shape);
+        *(in2.grad) = 0;
+    }
+
+    *(in1.grad) = *(in1.grad) + *(out.grad);
+    *(in2.grad) = *(in2.grad) + *(out.grad);
+
+    with_grad();
+}
+
+void Tensor::sub_backward_impl(Tensor& out) {
+    if (!out.m_requires_grad) return;
+
+    LOG_IF(FATAL, !out.grad) << "Grad tensor is not initialized";
+    LOG_IF(FATAL, out.m_parents.size() != 2) << "Subtract backward function expected 2 parents only";
+    LOG_IF(FATAL, nullptr == out.m_parents[0]);
+    LOG_IF(FATAL, nullptr == out.m_parents[1]);
+
+    with_no_grad();
+    auto& in1 = *out.m_parents[0];
+    auto& in2 = *out.m_parents[1];
+
+    if (!in1.grad) {
+        in1.grad = std::make_shared<Tensor>(in1.m_shape);
+        *(in1.grad) = 0;
+    }
+
+    if (!in2.grad) {
+        in2.grad = std::make_shared<Tensor>(in2.m_shape);
+        *(in2.grad) = 0;
+    }
+
+    *(in1.grad) = *(in1.grad) + *(out.grad);
+    *(in2.grad) = *(in2.grad) - *(out.grad);
+
+    with_grad();
+}
+
+void Tensor::mul_backward_impl(Tensor& out) {
+    if (!out.m_requires_grad) return;
+
+    LOG_IF(FATAL, !out.grad) << "Grad tensor is not initialized";
+    LOG_IF(FATAL, out.m_parents.size() != 2) << "Subtract backward function expected 2 parents only";
+    LOG_IF(FATAL, nullptr == out.m_parents[0]);
+    LOG_IF(FATAL, nullptr == out.m_parents[1]);
+
+    with_no_grad();
+
+    auto& in1 = *out.m_parents[0];
+    auto& in2 = *out.m_parents[1];
+
+    if (!in1.grad) {
+        in1.grad = std::make_shared<Tensor>(in1.m_shape);
+        *(in1.grad) = 0;
+    }
+
+    if (!in2.grad) {
+        in2.grad = std::make_shared<Tensor>(in2.m_shape);
+        *(in2.grad) = 0;
+    }
+
+    if (&out != &in1) {
+        *(in1.grad) = *(in1.grad) + (*(out.grad) * in2);
+    }
+
+    if (&out != &in2) {
+        *(in2.grad) = *(in2.grad) + (*(out.grad) * in1);
+    }
+
+    with_grad();
+}
+
+void Tensor::div_backward_impl(Tensor& out) {
+    (void)out;
+    LOG(FATAL) << "Not yet implemented";
+}
+
+void Tensor::matmul_backward_impl(Tensor& out) {
+    (void)out;
+    LOG(FATAL) << "Not yet implemented";
 }
