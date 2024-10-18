@@ -27,5 +27,8 @@ fi
 cd -
 
 if [[ "$OSTYPE" == "msys" ]]; then
-    ln -s $(pwd)/$output_dir/libs/glog/libglogd.dll $(pwd)/$output_dir
+    gloglib=$(pwd)/$output_dir/libs/glog/libglogd.dll
+    if [[ ! -f $gloglib ]]; then
+        ln -s $gloglib $(pwd)/$output_dir
+    fi
 fi
