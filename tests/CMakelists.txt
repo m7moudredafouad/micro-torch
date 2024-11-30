@@ -1,0 +1,15 @@
+cmake_minimum_required(VERSION 3.30)
+
+project(micro_torch_unit_tests)
+
+message(WARNING ${CMAKE_CURRENT_BINARY_DIR})
+find_package(gtest REQUIRED)
+
+file(GLOB SRC_FILES unit/*.cpp)
+
+add_executable(${PROJECT_NAME} ${SRC_FILES})
+
+target_link_libraries(${PROJECT_NAME} PRIVATE gtest gmock glog micro_torch)
+target_include_directories(${PROJECT_NAME} PRIVATE ../include ${gtest_SOURCE_DIR} ${gtest_SOURCE_DIR}/include)
+
+install(TARGETS ${PROJECT_NAME} DESTINATION bin)

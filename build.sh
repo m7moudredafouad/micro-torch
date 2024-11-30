@@ -16,19 +16,12 @@ if [ $error != 0 ]; then
 fi
 
 echo ">>> Building..."
-cd $output_dir
-make
-error=$?
-if [ $error == 0 ]; then
-    echo ">>> Done."
-else
-    echo ">>> Make error $error"
-fi
-cd -
+cmake --build $output_dir
 
-if [[ "$OSTYPE" == "msys" ]]; then
-    gloglib=$(pwd)/$output_dir/libs/glog/libglogd.dll
-    if [[ ! -f $gloglib ]]; then
-        ln -s $gloglib $(pwd)/$output_dir
-    fi
+error=$?
+if [ $error != 0 ]; then
+    echo ">>> Make error $error"
+    exit $error
 fi
+
+echo ">>> Done."

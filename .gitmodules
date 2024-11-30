@@ -1,3 +1,6 @@
 [submodule "libs/glog"]
 	path = libs/glog
 	url = https://github.com/google/glog.git
+[submodule "libs/gtest"]
+	path = libs/gtest
+	url = https://github.com/google/googletest.git
