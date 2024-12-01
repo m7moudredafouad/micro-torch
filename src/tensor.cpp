@@ -1,5 +1,7 @@
 #include "tensor.hpp"
 
+namespace micro {
+
 bool Tensor::enable_global_grad = true;
 
 uint32_t Tensor::Size() const {
@@ -23,7 +25,7 @@ void Tensor::SetDefaultStrides() {
     }
 }
 
-Tensor::Element& Tensor::operator[](const std::vector<uint32_t>& indices) {
+Element& Tensor::operator[](const std::vector<uint32_t>& indices) {
     LOG_IF(FATAL, indices.size() != m_shape.size())
         << "Indices size=" << indices.size() << " don't match the full_shape=" << m_shape.size();
     uint32_t offset = 0, i = 0;
@@ -162,12 +164,12 @@ Tensor Tensor::mm(const Tensor& other) const {
     return out;
 }
 
-Tensor::Element& Tensor::operator[](uint32_t offset) {
+Element& Tensor::operator[](uint32_t offset) {
     LOG_IF(FATAL, offset >= Size()) << "index out of range";
     return *reinterpret_cast<Element*>(m_storage.at((m_offset + offset) * sizeof(Element)));
 }
 
-Tensor::Element Tensor::broadcasted_read(const std::vector<uint32_t>& indices) const {
+Element Tensor::broadcasted_read(const std::vector<uint32_t>& indices) const {
     int32_t nindecies = indices.size();
     int32_t ndims = m_shape.size();
     int32_t i = 0, j = 0;
@@ -215,3 +217,5 @@ void Tensor::backward() {
         list[i]->m_grad_fn(*list[i]);
     }
 }
+
+}; // namespace micro

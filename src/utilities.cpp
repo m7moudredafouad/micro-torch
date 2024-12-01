@@ -1,15 +1,17 @@
 #include "tensor.hpp"
 
+namespace micro {
+
 #define PRINT_ELEMENT(dtype, element, os)                                   \
     {                                                                       \
         switch (dtype) {                                                    \
-            case Tensor::Type::UINT32:                                      \
+            case Type::UINT32:                                              \
                 os << uint32_t(element);                                    \
                 break;                                                      \
-            case Tensor::Type::INT32:                                       \
+            case Type::INT32:                                               \
                 os << int32_t(element);                                     \
                 break;                                                      \
-            case Tensor::Type::FLOAT32:                                     \
+            case Type::FLOAT32:                                             \
                 os << float(element);                                       \
                 break;                                                      \
             default:                                                        \
@@ -90,3 +92,5 @@ std::ostream& operator<<(std::ostream& os, Tensor& t) {
     os << ")";
     return os;
 }
+
+};  // namespace micro

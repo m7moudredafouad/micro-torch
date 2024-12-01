@@ -5,45 +5,45 @@
 #include "includes.hpp"
 #include "storage.hpp"
 
-class Tensor {
-   public:
-    enum class Type : uint8_t { UINT32 = 0, INT32, FLOAT32, UNKONWN };
+namespace micro {
+enum class Type : uint8_t { UINT32 = 0, INT32, FLOAT32, UNKONWN };
 
-    struct Element {
-        union Data {
-            uint32_t u32 = 0;
-            int32_t i32;
-            float f32;
-        } data;
+struct Element {
+    union Data {
+        uint32_t u32 = 0;
+        int32_t i32;
+        float f32;
+    } data;
 
-        Element() = default;
+    Element() = default;
 
-        template <typename T>
-        Element(T value) {
-            if constexpr (std::is_same_v<T, int32_t>) {
-                data.i32 = value;
-            } else if constexpr (std::is_same_v<T, uint32_t>) {
-                data.u32 = value;
-            } else if constexpr (std::is_same_v<T, float> || std::is_same_v<T, double>) {
-                data.f32 = float(value);
-            } else {
-                LOG(FATAL) << "Element Type is not supported";
-            }
+    template <typename T>
+    Element(T value) {
+        if constexpr (std::is_same_v<T, int32_t>) {
+            data.i32 = value;
+        } else if constexpr (std::is_same_v<T, uint32_t>) {
+            data.u32 = value;
+        } else if constexpr (std::is_same_v<T, float> || std::is_same_v<T, double>) {
+            data.f32 = float(value);
+        } else {
+            LOG(FATAL) << "Element Type is not supported";
         }
+    }
 
-        operator float() const { return this->data.f32; }
+    operator float() const { return this->data.f32; }
 
-        operator float&() { return this->data.f32; }
+    operator float&() { return this->data.f32; }
 
-        operator int32_t() const { return this->data.i32; }
+    operator int32_t() const { return this->data.i32; }
 
-        operator int32_t&() { return this->data.i32; }
+    operator int32_t&() { return this->data.i32; }
 
-        operator uint32_t() const { return this->data.u32; }
+    operator uint32_t() const { return this->data.u32; }
 
-        operator uint32_t&() { return this->data.u32; }
-    };
+    operator uint32_t&() { return this->data.u32; }
+};
 
+class Tensor {
    public:
     Tensor() = default;
 
@@ -175,7 +175,7 @@ class Tensor {
     Element broadcasted_read(const std::vector<uint32_t>& indices) const;
 
    private:
-    Tensor::Type m_dtype = Tensor::Type::FLOAT32;
+    Type m_dtype = Type::FLOAT32;
     bool m_requires_grad = false;
     int64_t m_offset = 0;
 
@@ -218,3 +218,5 @@ class Tensor {
    private:
     static bool enable_global_grad;
 };
+
+};  // namespace micro

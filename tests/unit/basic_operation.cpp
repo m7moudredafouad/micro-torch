@@ -2,6 +2,8 @@
 
 #include <tensor.hpp>
 
+using namespace micro;
+
 TEST(BasicTensorOperations, Assignment) {
     uint32_t tensor_size = 3;
     Tensor t1({tensor_size});
@@ -17,7 +19,7 @@ TEST(BasicTensorOperations, Assignment) {
 
 TEST(BasicTensorOperations, AddConstant) {
     uint32_t tensor_size = 3;
-    Tensor t1({tensor_size}, Tensor::Type::UINT32);
+    Tensor t1({tensor_size}, Type::UINT32);
     t1 = 0;
     t1 += 16;
 
@@ -31,7 +33,7 @@ TEST(BasicTensorOperations, AddConstant) {
 
 TEST(BasicTensorOperations, SubConstant) {
     uint32_t tensor_size = 3;
-    Tensor t1({tensor_size}, Tensor::Type::UINT32);
+    Tensor t1({tensor_size}, Type::UINT32);
     t1 = 16;
     t1 -= 1;
 
@@ -45,7 +47,7 @@ TEST(BasicTensorOperations, SubConstant) {
 
 TEST(BasicTensorOperations, MulConstant) {
     uint32_t tensor_size = 3;
-    Tensor t1({tensor_size}, Tensor::Type::UINT32);
+    Tensor t1({tensor_size}, Type::UINT32);
     t1 = 1;
     t1 *= 16;
 
@@ -59,7 +61,7 @@ TEST(BasicTensorOperations, MulConstant) {
 
 TEST(BasicTensorOperations, DivConstant) {
     uint32_t tensor_size = 3;
-    Tensor t1({tensor_size}, Tensor::Type::UINT32);
+    Tensor t1({tensor_size}, Type::UINT32);
     t1 = 16;
     t1 /= 4;
 
@@ -73,8 +75,8 @@ TEST(BasicTensorOperations, DivConstant) {
 
 TEST(BasicTensorOperations, AddTensor) {
     uint32_t tensor_size = 3;
-    Tensor t1({tensor_size}, Tensor::Type::UINT32);
-    Tensor t2({tensor_size}, Tensor::Type::UINT32);
+    Tensor t1({tensor_size}, Type::UINT32);
+    Tensor t2({tensor_size}, Type::UINT32);
     t1 = 1;
     t2 = 2;
 
@@ -89,8 +91,8 @@ TEST(BasicTensorOperations, AddTensor) {
 
 TEST(BasicTensorOperations, SubTensor) {
     uint32_t tensor_size = 3;
-    Tensor t1({tensor_size}, Tensor::Type::INT32);
-    Tensor t2({tensor_size}, Tensor::Type::INT32);
+    Tensor t1({tensor_size}, Type::INT32);
+    Tensor t2({tensor_size}, Type::INT32);
     t1 = 1;
     t2 = 2;
 
@@ -105,8 +107,8 @@ TEST(BasicTensorOperations, SubTensor) {
 
 TEST(BasicTensorOperations, MulTensor) {
     uint32_t tensor_size = 3;
-    Tensor t1({tensor_size}, Tensor::Type::INT32);
-    Tensor t2({tensor_size}, Tensor::Type::INT32);
+    Tensor t1({tensor_size}, Type::INT32);
+    Tensor t2({tensor_size}, Type::INT32);
     t1 = -1;
     t2 = 2;
 
@@ -121,8 +123,8 @@ TEST(BasicTensorOperations, MulTensor) {
 
 TEST(BasicTensorOperations, DivTensor) {
     uint32_t tensor_size = 3;
-    Tensor t1({tensor_size}, Tensor::Type::INT32);
-    Tensor t2({tensor_size}, Tensor::Type::INT32);
+    Tensor t1({tensor_size}, Type::INT32);
+    Tensor t2({tensor_size}, Type::INT32);
     t1 = -16;
     t2 = -4;
 

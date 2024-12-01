@@ -1,18 +1,20 @@
 #include "tensor.hpp"
 
+namespace micro {
+
 #define EXECUTE_OPERATION(out, in1, in2, odtype, operation)                             \
     {                                                                                   \
         auto& out_alias = out;                                                          \
         auto in1_alias = in1;                                                           \
         auto in2_alias = in2;                                                           \
         switch (odtype) {                                                               \
-            case Tensor::Type::UINT32:                                                  \
+            case Type::UINT32:                                                          \
                 out_alias.data.i32 = uint32_t(in1_alias) operation uint32_t(in2_alias); \
                 break;                                                                  \
-            case Tensor::Type::INT32:                                                   \
+            case Type::INT32:                                                           \
                 out_alias.data.i32 = int32_t(in1_alias) operation int32_t(in2_alias);   \
                 break;                                                                  \
-            case Tensor::Type::FLOAT32:                                                 \
+            case Type::FLOAT32:                                                         \
                 out_alias.data.f32 = float(in1_alias) operation float(in2_alias);       \
                 break;                                                                  \
             default:                                                                    \
@@ -51,14 +53,14 @@ void iterate_tensor(const std::vector<uint32_t>& shape, CallBackFn& call_back) {
     }
 }
 
-Tensor::Type get_output_type(const Tensor::Type& t1, const Tensor::Type& t2) {
-    if (t1 == Tensor::Type::UNKONWN && t2 == Tensor::Type::UNKONWN) {
+Type get_output_type(const Type& t1, const Type& t2) {
+    if (t1 == Type::UNKONWN && t2 == Type::UNKONWN) {
         LOG(WARNING) << "Setting element type to Unkown";
-        return Tensor::Type::UNKONWN;
+        return Type::UNKONWN;
     }
 
-    if (t1 == Tensor::Type::UNKONWN) return t2;
-    if (t2 == Tensor::Type::UNKONWN) return t1;
+    if (t1 == Type::UNKONWN) return t2;
+    if (t2 == Type::UNKONWN) return t1;
 
     return std::max(t1, t2);
 }
@@ -158,7 +160,7 @@ void Tensor::matmul_impl(const Tensor& in1, const Tensor& in2, Tensor& out) {
                 auto v1 = in1.broadcasted_read(indices);
                 auto v2 = in2.broadcasted_read(indices);
 
-                Tensor::Element tmp_value;
+                Element tmp_value;
                 EXECUTE_OPERATION(tmp_value, v1, v2, out.m_dtype, *);
                 EXECUTE_OPERATION(out_value, out_value, tmp_value, out.m_dtype, +);
             }
@@ -174,7 +176,7 @@ void Tensor::matmul_impl(const Tensor& in1, const Tensor& in2, Tensor& out) {
             auto v1 = in1.broadcasted_read(tmp1_indices);
             auto v2 = in2.broadcasted_read(tmp2_indices);
 
-            Tensor::Element tmp_value;
+            Element tmp_value;
             EXECUTE_OPERATION(tmp_value, v1, v2, out.m_dtype, *);
             EXECUTE_OPERATION(out_value, out_value, tmp_value, out.m_dtype, +);
         }
@@ -282,3 +284,5 @@ void Tensor::matmul_backward_impl(Tensor& out) {
     (void)out;
     LOG(FATAL) << "Not yet implemented";
 }
+
+};  // namespace micro
