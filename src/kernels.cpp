@@ -112,7 +112,7 @@ Tensor get_matmul_empty_output(const Tensor& in1, const Tensor& in2) {
     return Tensor(out_shape, get_output_type(in1.m_dtype, in2.m_dtype));
 }
 
-void Tensor::add_impl(const Tensor& in1, const Tensor& in2, Tensor& out) {
+void Tensor::add_forward_impl(const Tensor& in1, const Tensor& in2, Tensor& out) {
     auto call_back = [&](std::vector<uint32_t> indices) {
         EXECUTE_OPERATION(out[indices], in1.broadcasted_read(indices), in2.broadcasted_read(indices), out.m_dtype, +);
     };
@@ -120,7 +120,7 @@ void Tensor::add_impl(const Tensor& in1, const Tensor& in2, Tensor& out) {
     iterate_tensor(out.m_shape, call_back);
 }
 
-void Tensor::sub_impl(const Tensor& in1, const Tensor& in2, Tensor& out) {
+void Tensor::sub_forward_impl(const Tensor& in1, const Tensor& in2, Tensor& out) {
     auto call_back = [&](std::vector<uint32_t> indices) {
         EXECUTE_OPERATION(out[indices], in1.broadcasted_read(indices), in2.broadcasted_read(indices), out.m_dtype, -);
     };
@@ -128,7 +128,7 @@ void Tensor::sub_impl(const Tensor& in1, const Tensor& in2, Tensor& out) {
     iterate_tensor(out.m_shape, call_back);
 }
 
-void Tensor::mul_impl(const Tensor& in1, const Tensor& in2, Tensor& out) {
+void Tensor::mul_forward_impl(const Tensor& in1, const Tensor& in2, Tensor& out) {
     auto call_back = [&](std::vector<uint32_t> indices) {
         EXECUTE_OPERATION(out[indices], in1.broadcasted_read(indices), in2.broadcasted_read(indices), out.m_dtype, *);
     };
@@ -136,7 +136,7 @@ void Tensor::mul_impl(const Tensor& in1, const Tensor& in2, Tensor& out) {
     iterate_tensor(out.m_shape, call_back);
 }
 
-void Tensor::div_impl(const Tensor& in1, const Tensor& in2, Tensor& out) {
+void Tensor::div_forward_impl(const Tensor& in1, const Tensor& in2, Tensor& out) {
     auto call_back = [&](std::vector<uint32_t> indices) {
         EXECUTE_OPERATION(out[indices], in1.broadcasted_read(indices), in2.broadcasted_read(indices), out.m_dtype, /);
     };
@@ -144,7 +144,7 @@ void Tensor::div_impl(const Tensor& in1, const Tensor& in2, Tensor& out) {
     iterate_tensor(out.m_shape, call_back);
 }
 
-void Tensor::matmul_impl(const Tensor& in1, const Tensor& in2, Tensor& out) {
+void Tensor::matmul_forward_impl(const Tensor& in1, const Tensor& in2, Tensor& out) {
     auto call_back = [&](std::vector<uint32_t> indices) {
         int32_t ndims = indices.size();
         auto& out_value = out[indices];

@@ -2,7 +2,11 @@
 
 namespace micro {
 
-bool Tensor::enable_global_grad = true;
+static bool enable_global_grad = true;
+
+void with_no_grad() { enable_global_grad = false; }
+
+void with_grad() { enable_global_grad = true; }
 
 uint32_t Tensor::size() const {
     LOG_IF(FATAL, m_shape.size() == 0);
@@ -46,76 +50,61 @@ Element& Tensor::operator[](const std::vector<uint32_t>& indices) {
 
 Tensor Tensor::operator+(const Tensor& other) const {
     Tensor out = get_element_wise_empty_output(*this, other);
-    add_impl(*this, other, out);
+    add_forward_impl(*this, other, out);
 
-    if (Tensor::enable_global_grad) {
-        out.m_saved_context->save_for_backward({*this, other});
+    if (!enable_global_grad || !(this->m_requires_grad || other.m_requires_grad)) return out;
 
-        if (this->m_requires_grad || other.m_requires_grad) {
-            out.m_requires_grad = true;
-            out.m_grad_fn = Tensor::add_backward_impl;
-        }
-    }
+    out.m_saved_context->save_for_backward({*this, other});
+    out.m_requires_grad = true;
+    out.m_grad_fn = Tensor::add_backward_impl;
     return out;
 }
 
 Tensor Tensor::operator-(const Tensor& other) const {
     Tensor out = get_element_wise_empty_output(*this, other);
-    sub_impl(*this, other, out);
+    sub_forward_impl(*this, other, out);
 
-    if (Tensor::enable_global_grad) {
-        out.m_saved_context->save_for_backward({*this, other});
+    if (!enable_global_grad || !(this->m_requires_grad || other.m_requires_grad)) return out;
 
-        if (this->m_requires_grad || other.m_requires_grad) {
-            out.m_requires_grad = true;
-            out.m_grad_fn = Tensor::sub_backward_impl;
-        }
-    }
+    out.m_saved_context->save_for_backward({*this, other});
+    out.m_requires_grad = true;
+    out.m_grad_fn = Tensor::sub_backward_impl;
     return out;
 }
 
 Tensor Tensor::operator*(const Tensor& other) const {
     Tensor out = get_element_wise_empty_output(*this, other);
-    mul_impl(*this, other, out);
+    mul_forward_impl(*this, other, out);
 
-    if (Tensor::enable_global_grad) {
-        out.m_saved_context->save_for_backward({*this, other});
+    if (!enable_global_grad || !(this->m_requires_grad || other.m_requires_grad)) return out;
 
-        if (this->m_requires_grad || other.m_requires_grad) {
-            out.m_requires_grad = true;
-            out.m_grad_fn = Tensor::mul_backward_impl;
-        }
-    }
+    out.m_saved_context->save_for_backward({*this, other});
+    out.m_requires_grad = true;
+    out.m_grad_fn = Tensor::mul_backward_impl;
     return out;
 }
 
 Tensor Tensor::operator/(const Tensor& other) const {
     Tensor out = get_element_wise_empty_output(*this, other);
-    div_impl(*this, other, out);
+    div_forward_impl(*this, other, out);
 
-    if (Tensor::enable_global_grad) {
-        out.m_saved_context->save_for_backward({*this, other});
+    if (!enable_global_grad || !(this->m_requires_grad || other.m_requires_grad)) return out;
 
-        if (this->m_requires_grad || other.m_requires_grad) {
-            out.m_requires_grad = true;
-            out.m_grad_fn = Tensor::div_backward_impl;
-        }
-    }
+    out.m_saved_context->save_for_backward({*this, other});
+    out.m_requires_grad = true;
+    out.m_grad_fn = Tensor::div_backward_impl;
     return out;
 }
 
 Tensor Tensor::mm(const Tensor& other) const {
     Tensor out = get_matmul_empty_output(*this, other);
-    matmul_impl(*this, other, out);
+    matmul_forward_impl(*this, other, out);
+    if (!enable_global_grad || !(this->m_requires_grad || other.m_requires_grad)) return out;
 
-    if (Tensor::enable_global_grad) {
-        out.m_saved_context->save_for_backward({*this, other});
+    out.m_saved_context->save_for_backward({*this, other});
+    out.m_requires_grad = true;
+    out.m_grad_fn = Tensor::matmul_backward_impl;
 
-        if (this->m_requires_grad || other.m_requires_grad) {
-            out.m_requires_grad = true;
-            out.m_grad_fn = Tensor::matmul_backward_impl;
-        }
-    }
     return out;
 }
 

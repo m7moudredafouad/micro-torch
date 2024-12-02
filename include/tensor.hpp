@@ -6,6 +6,10 @@
 #include "storage.hpp"
 
 namespace micro {
+
+void with_no_grad();
+void with_grad();
+
 class AutogradContext;
 
 enum class Type : uint8_t { UINT32 = 0, INT32, FLOAT32, UNKONWN };
@@ -136,28 +140,28 @@ class Tensor {
     typename std::enable_if_t<!std::is_same_v<T, Tensor>, void> operator+=(T value) {
         Tensor tensor({1});
         WRITE_ELEMENT(tensor[0], value);
-        add_impl(*this, tensor, *this);
+        add_forward_impl(*this, tensor, *this);
     }
 
     template <typename T>
     typename std::enable_if_t<!std::is_same_v<T, Tensor>, void> operator-=(T value) {
         Tensor tensor({1});
         WRITE_ELEMENT(tensor[0], value);
-        sub_impl(*this, tensor, *this);
+        sub_forward_impl(*this, tensor, *this);
     }
 
     template <typename T>
     typename std::enable_if_t<!std::is_same_v<T, Tensor>, void> operator*=(T value) {
         Tensor tensor({1});
         WRITE_ELEMENT(tensor[0], value);
-        mul_impl(*this, tensor, *this);
+        mul_forward_impl(*this, tensor, *this);
     }
 
     template <typename T>
     typename std::enable_if_t<!std::is_same_v<T, Tensor>, void> operator/=(T value) {
         Tensor tensor({1});
         WRITE_ELEMENT(tensor[0], value);
-        div_impl(*this, tensor, *this);
+        div_forward_impl(*this, tensor, *this);
     }
 
     template <typename T>
@@ -197,11 +201,11 @@ class Tensor {
     friend Tensor get_matmul_empty_output(const Tensor& in1, const Tensor& in2);
 
     // Forward Functions
-    static void add_impl(const Tensor& in1, const Tensor& in2, Tensor& out);
-    static void sub_impl(const Tensor& in1, const Tensor& in2, Tensor& out);
-    static void mul_impl(const Tensor& in1, const Tensor& in2, Tensor& out);
-    static void div_impl(const Tensor& in1, const Tensor& in2, Tensor& out);
-    static void matmul_impl(const Tensor& in1, const Tensor& in2, Tensor& out);
+    static void add_forward_impl(const Tensor& in1, const Tensor& in2, Tensor& out);
+    static void sub_forward_impl(const Tensor& in1, const Tensor& in2, Tensor& out);
+    static void mul_forward_impl(const Tensor& in1, const Tensor& in2, Tensor& out);
+    static void div_forward_impl(const Tensor& in1, const Tensor& in2, Tensor& out);
+    static void matmul_forward_impl(const Tensor& in1, const Tensor& in2, Tensor& out);
 
     // Backward Functions
     static void add_backward_impl(Tensor& out);
@@ -212,13 +216,6 @@ class Tensor {
 
     void topological_sort(Tensor& curr, std::vector<Tensor>& list,
                           std::unordered_set<std::shared_ptr<AutogradContext>>& visited);
-
-    static void with_no_grad() { Tensor::enable_global_grad = false; }
-
-    static void with_grad() { Tensor::enable_global_grad = true; }
-
-   private:
-    static bool enable_global_grad;
 };
 
 class AutogradContext {
