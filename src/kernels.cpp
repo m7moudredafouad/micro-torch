@@ -187,28 +187,32 @@ void Tensor::matmul_impl(const Tensor& in1, const Tensor& in2, Tensor& out) {
 
 void Tensor::add_backward_impl(Tensor& out) {
     if (!out.m_requires_grad) return;
-    LOG_IF(FATAL, !out.grad) << "Grad tensor is not initialized";
-    LOG_IF(FATAL, out.m_parents.size() != 2) << "Add backward function expected 2 parents only";
-    LOG_IF(FATAL, nullptr == out.m_parents[0]);
-    LOG_IF(FATAL, nullptr == out.m_parents[1]);
+    LOG_IF(FATAL, !out.m_saved_context->grad()) << "Grad tensor is not initialized";
+
+    auto parents = out.m_saved_context->get_saved_variables();
+    LOG_IF(FATAL, parents.size() != 2) << "Add backward function expected 2 parents only";
 
     with_no_grad();
 
-    auto& in1 = *out.m_parents[0];
-    auto& in2 = *out.m_parents[1];
+    auto& in1 = parents[0];
+    auto& in2 = parents[1];
 
-    if (!in1.grad) {
-        in1.grad = std::make_shared<Tensor>(in1.m_shape);
-        *(in1.grad) = 0;
+    auto& in1_grad = in1.m_saved_context->grad();
+    auto& in2_grad = in2.m_saved_context->grad();
+    auto& out_grad = out.m_saved_context->grad();
+
+    if (!in1_grad) {
+        in1_grad = std::make_shared<Tensor>(in1.m_shape);
+        *(in1_grad) = 0;
     }
 
-    if (!in2.grad) {
-        in2.grad = std::make_shared<Tensor>(in2.m_shape);
-        *(in2.grad) = 0;
+    if (!in2_grad) {
+        in2_grad = std::make_shared<Tensor>(in2.m_shape);
+        *(in2_grad) = 0;
     }
 
-    *(in1.grad) = *(in1.grad) + *(out.grad);
-    *(in2.grad) = *(in2.grad) + *(out.grad);
+    *(in1_grad) = *(in1_grad) + *(out_grad);
+    *(in2_grad) = *(in2_grad) + *(out_grad);
 
     with_grad();
 }
@@ -216,27 +220,33 @@ void Tensor::add_backward_impl(Tensor& out) {
 void Tensor::sub_backward_impl(Tensor& out) {
     if (!out.m_requires_grad) return;
 
-    LOG_IF(FATAL, !out.grad) << "Grad tensor is not initialized";
-    LOG_IF(FATAL, out.m_parents.size() != 2) << "Subtract backward function expected 2 parents only";
-    LOG_IF(FATAL, nullptr == out.m_parents[0]);
-    LOG_IF(FATAL, nullptr == out.m_parents[1]);
+    LOG_IF(FATAL, !out.m_saved_context->grad()) << "Grad tensor is not initialized";
+
+    auto parents = out.m_saved_context->get_saved_variables();
+
+    LOG_IF(FATAL, parents.size() != 2) << "Subtract backward function expected 2 parents only";
 
     with_no_grad();
-    auto& in1 = *out.m_parents[0];
-    auto& in2 = *out.m_parents[1];
 
-    if (!in1.grad) {
-        in1.grad = std::make_shared<Tensor>(in1.m_shape);
-        *(in1.grad) = 0;
+    auto& in1 = parents[0];
+    auto& in2 = parents[1];
+
+    auto& in1_grad = in1.m_saved_context->grad();
+    auto& in2_grad = in2.m_saved_context->grad();
+    auto& out_grad = out.m_saved_context->grad();
+
+    if (!in1_grad) {
+        in1_grad = std::make_shared<Tensor>(in1.m_shape);
+        *(in1_grad) = 0;
     }
 
-    if (!in2.grad) {
-        in2.grad = std::make_shared<Tensor>(in2.m_shape);
-        *(in2.grad) = 0;
+    if (!in2_grad) {
+        in2_grad = std::make_shared<Tensor>(in2.m_shape);
+        *(in2_grad) = 0;
     }
 
-    *(in1.grad) = *(in1.grad) + *(out.grad);
-    *(in2.grad) = *(in2.grad) - *(out.grad);
+    *(in1_grad) = *(in1_grad) + *(out_grad);
+    *(in2_grad) = *(in2_grad) - *(out_grad);
 
     with_grad();
 }
@@ -244,32 +254,37 @@ void Tensor::sub_backward_impl(Tensor& out) {
 void Tensor::mul_backward_impl(Tensor& out) {
     if (!out.m_requires_grad) return;
 
-    LOG_IF(FATAL, !out.grad) << "Grad tensor is not initialized";
-    LOG_IF(FATAL, out.m_parents.size() != 2) << "Subtract backward function expected 2 parents only";
-    LOG_IF(FATAL, nullptr == out.m_parents[0]);
-    LOG_IF(FATAL, nullptr == out.m_parents[1]);
+    LOG_IF(FATAL, !out.m_saved_context->grad()) << "Grad tensor is not initialized";
+
+    auto parents = out.m_saved_context->get_saved_variables();
+
+    LOG_IF(FATAL, parents.size() != 2) << "Subtract backward function expected 2 parents only";
 
     with_no_grad();
 
-    auto& in1 = *out.m_parents[0];
-    auto& in2 = *out.m_parents[1];
+    auto& in1 = parents[0];
+    auto& in2 = parents[1];
 
-    if (!in1.grad) {
-        in1.grad = std::make_shared<Tensor>(in1.m_shape);
-        *(in1.grad) = 0;
+    auto& in1_grad = in1.m_saved_context->grad();
+    auto& in2_grad = in2.m_saved_context->grad();
+    auto& out_grad = out.m_saved_context->grad();
+
+    if (!in1_grad) {
+        in1_grad = std::make_shared<Tensor>(in1.m_shape);
+        *(in1_grad) = 0;
     }
 
-    if (!in2.grad) {
-        in2.grad = std::make_shared<Tensor>(in2.m_shape);
-        *(in2.grad) = 0;
+    if (!in2_grad) {
+        in2_grad = std::make_shared<Tensor>(in2.m_shape);
+        *(in2_grad) = 0;
     }
 
-    if (&out != &in1) {
-        *(in1.grad) = *(in1.grad) + (*(out.grad) * in2);
+    if (out.m_saved_context != in1.m_saved_context) {
+        *(in1_grad) = *(in1_grad) + (*(out_grad)*in2);
     }
 
-    if (&out != &in2) {
-        *(in2.grad) = *(in2.grad) + (*(out.grad) * in1);
+    if (out.m_saved_context != in2.m_saved_context) {
+        *(in2_grad) = *(in2_grad) + (*(out_grad)*in1);
     }
 
     with_grad();

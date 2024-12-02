@@ -19,7 +19,7 @@ namespace micro {
         }                                                                   \
     }
 
-std::ostream& operator<<(std::ostream& os, Tensor& t) {
+std::ostream& operator<<(std::ostream& os, const Tensor& t) {
     os << "Tensor(";
 
     int32_t ndims = t.m_shape.size();
