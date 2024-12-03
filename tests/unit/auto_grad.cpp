@@ -19,12 +19,10 @@ TEST(AutoGrad, BasicGradient) {
     auto t2_grad = t2.grad();
     auto t3_grad = t3.grad();
 
-    std::vector<uint32_t> index(1, 0);
     for (uint32_t i = 0; i < tensor_size; i++) {
-        index[0] = i;
-        EXPECT_EQ((float)t1_grad[index], 5.f);
-        EXPECT_EQ((float)t2_grad[index], 1.f);
-        EXPECT_EQ((float)t3_grad[index], 1.f);
+        EXPECT_EQ((float)t1_grad[{i}], 5.f);
+        EXPECT_EQ((float)t2_grad[{i}], 1.f);
+        EXPECT_EQ((float)t3_grad[{i}], 1.f);
     }
 }
 
@@ -43,11 +41,9 @@ TEST(AutoGrad, BasicGradient2) {
     auto t2_grad = t2.grad();
     auto t3_grad = t3.grad();
 
-    std::vector<uint32_t> index(1, 0);
     for (uint32_t i = 0; i < tensor_size; i++) {
-        index[0] = i;
-        EXPECT_EQ((float)t1_grad[index], 13.f);
-        EXPECT_EQ((float)t2_grad[index], 1.f);
-        EXPECT_EQ((float)t3_grad[index], 1.f);
+        EXPECT_EQ((float)t1_grad[{i}], 13.f);
+        EXPECT_EQ((float)t2_grad[{i}], 1.f);
+        EXPECT_EQ((float)t3_grad[{i}], 1.f);
     }
 }

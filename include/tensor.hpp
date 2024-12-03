@@ -58,31 +58,32 @@ class Tensor {
         m_storage = Storage(number_bytes());
     }
 
-    Tensor(std::vector<uint32_t> shape, std::vector<uint32_t>& stride, Type dtype = Type::FLOAT32)
-        : m_dtype(dtype), m_shape(std::move(shape)), m_stride(std::move(stride)) {
-        LOG_IF(FATAL, shape.size() != stride.size());
-
-        m_storage = Storage(number_bytes());
-    }
+    void set_default_strides();
 
     uint32_t size() const;
 
     uint32_t number_bytes() const { return size() * sizeof(Element); }
+
+    Tensor grad();
 
     void requires_grad(bool requires_grad) {
         LOG_IF(FATAL, m_grad_fn != nullptr) << "you can only change requires_grad flags of leaf variables";
         m_requires_grad = requires_grad;
     }
 
-    void set_default_strides();
+    Element operator[](const std::initializer_list<uint32_t>& indices) const {
+        return const_cast<Tensor*>(this)->operator[](std::vector<uint32_t>{indices});
+    }
+
+    Element& operator[](const std::initializer_list<uint32_t>& indices) {
+        return this->operator[](std::vector<uint32_t>{indices});
+    }
 
     Element operator[](const std::vector<uint32_t>& indices) const {
         return const_cast<Tensor*>(this)->operator[](indices);
     }
 
     Element& at(const std::vector<uint32_t>& indices) { return this->operator[](indices); }
-
-    Tensor grad();
 
     Element& operator[](const std::vector<uint32_t>& indices);
     Tensor operator+(const Tensor& other) const;

@@ -14,14 +14,14 @@ TEST(SimpleML, SimpleMLNotGate) {
     float lr = 0.01;
 
     Tensor data({2}), weights({1}), bias({1}), out({2});
-    data[std::vector<uint32_t>{0}] = 0;
-    data[std::vector<uint32_t>{1}] = 1.f;
+    data[{0}] = 0;
+    data[{1}] = 1.f;
 
-    out[std::vector<uint32_t>{0}] = 1.f;
-    out[std::vector<uint32_t>{1}] = 0;
+    out[{0}] = 1.f;
+    out[{1}] = 0;
 
-    weights[std::vector<uint32_t>{0}] = rand() / (float)RAND_MAX;
-    bias[std::vector<uint32_t>{0}] = rand() / (float)RAND_MAX;
+    weights[{0}] = rand() / (float)RAND_MAX;
+    bias[{0}] = rand() / (float)RAND_MAX;
 
     weights.requires_grad(true);
     bias.requires_grad(true);
@@ -43,6 +43,6 @@ TEST(SimpleML, SimpleMLNotGate) {
 
     LOG(INFO) << pred;
 
-    EXPECT_GE((float)pred[std::vector<uint32_t>{0}], 0.5f);
-    EXPECT_LE((float)pred[std::vector<uint32_t>{1}], 0.5f);
+    EXPECT_GE((float)pred[{0}], 0.5f);
+    EXPECT_LE((float)pred[{1}], 0.5f);
 }

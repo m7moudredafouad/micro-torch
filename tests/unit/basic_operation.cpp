@@ -9,11 +9,8 @@ TEST(BasicTensorOperations, Assignment) {
     Tensor t1({tensor_size});
     t1 = 100.f;
 
-    std::vector<uint32_t> index(1, 0);
-
     for (uint32_t i = 0; i < tensor_size; i++) {
-        index[0] = i;
-        EXPECT_EQ((float)t1[index], 100.f);
+        EXPECT_EQ((float)t1[{i}], 100.f);
     }
 }
 
@@ -23,11 +20,8 @@ TEST(BasicTensorOperations, AddConstant) {
     t1 = 0;
     t1 += 16;
 
-    std::vector<uint32_t> index(1, 0);
-
     for (uint32_t i = 0; i < tensor_size; i++) {
-        index[0] = i;
-        EXPECT_EQ((uint32_t)t1[index], 16);
+        EXPECT_EQ((uint32_t)t1[{i}], 16);
     }
 }
 
@@ -37,11 +31,8 @@ TEST(BasicTensorOperations, SubConstant) {
     t1 = 16;
     t1 -= 1;
 
-    std::vector<uint32_t> index(1, 0);
-
     for (uint32_t i = 0; i < tensor_size; i++) {
-        index[0] = i;
-        EXPECT_EQ((uint32_t)t1[index], 15);
+        EXPECT_EQ((uint32_t)t1[{i}], 15);
     }
 }
 
@@ -51,11 +42,8 @@ TEST(BasicTensorOperations, MulConstant) {
     t1 = 1;
     t1 *= 16;
 
-    std::vector<uint32_t> index(1, 0);
-
     for (uint32_t i = 0; i < tensor_size; i++) {
-        index[0] = i;
-        EXPECT_EQ((uint32_t)t1[index], 16);
+        EXPECT_EQ((uint32_t)t1[{i}], 16);
     }
 }
 
@@ -65,11 +53,8 @@ TEST(BasicTensorOperations, DivConstant) {
     t1 = 16;
     t1 /= 4;
 
-    std::vector<uint32_t> index(1, 0);
-
     for (uint32_t i = 0; i < tensor_size; i++) {
-        index[0] = i;
-        EXPECT_EQ((uint32_t)t1[index], 4);
+        EXPECT_EQ((uint32_t)t1[{i}], 4);
     }
 }
 
@@ -81,11 +66,9 @@ TEST(BasicTensorOperations, AddTensor) {
     t2 = 2;
 
     auto t3 = t1 + t2;
-    std::vector<uint32_t> index(1, 0);
 
     for (uint32_t i = 0; i < tensor_size; i++) {
-        index[0] = i;
-        EXPECT_EQ((uint32_t)t3[index], 3);
+        EXPECT_EQ((uint32_t)t3[{i}], 3);
     }
 }
 
@@ -97,11 +80,8 @@ TEST(BasicTensorOperations, SubTensor) {
     t2 = 2;
 
     auto t3 = t1 - t2;
-    std::vector<uint32_t> index(1, 0);
-
     for (uint32_t i = 0; i < tensor_size; i++) {
-        index[0] = i;
-        EXPECT_EQ((int32_t)t3[index], -1);
+        EXPECT_EQ((int32_t)t3[{i}], -1);
     }
 }
 
@@ -113,11 +93,8 @@ TEST(BasicTensorOperations, MulTensor) {
     t2 = 2;
 
     auto t3 = t1 * t2;
-    std::vector<uint32_t> index(1, 0);
-
     for (uint32_t i = 0; i < tensor_size; i++) {
-        index[0] = i;
-        EXPECT_EQ((int32_t)t3[index], -2);
+        EXPECT_EQ((int32_t)t3[{i}], -2);
     }
 }
 
@@ -129,10 +106,7 @@ TEST(BasicTensorOperations, DivTensor) {
     t2 = -4;
 
     auto t3 = t1 / t2;
-    std::vector<uint32_t> index(1, 0);
-
     for (uint32_t i = 0; i < tensor_size; i++) {
-        index[0] = i;
-        EXPECT_EQ((int32_t)t3[index], 4);
+        EXPECT_EQ((int32_t)t3[{i}], 4);
     }
 }
