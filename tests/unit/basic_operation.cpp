@@ -121,3 +121,11 @@ TEST(BasicTensorOperations, SumTensor) {
     auto t2 = t1.sum(0);
     EXPECT_EQ((int32_t)t2[{0}], 6);
 }
+
+TEST(BasicTensorOperations, AssignToArrayOfElements) {
+    Tensor t1({3}, Type::FLOAT32);
+    t1 = {0.1f, 0.2f, 0.3f};
+    EXPECT_EQ((float)t1[{0}], 0.1f);
+    EXPECT_EQ((float)t1[{1}], 0.2f);
+    EXPECT_EQ((float)t1[{2}], 0.3f);
+}

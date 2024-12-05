@@ -8,9 +8,9 @@ void with_no_grad() { enable_global_grad = false; }
 
 void with_grad() { enable_global_grad = true; }
 
-uint32_t Tensor::size() const {
+size_t Tensor::size() const {
     LOG_IF(FATAL, m_shape.size() == 0);
-    uint32_t size = 1;
+    size_t size = 1;
     for (size_t i = 0; i < m_shape.size(); i++) {
         size *= m_shape[i];
     }

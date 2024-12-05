@@ -60,7 +60,7 @@ class Tensor {
 
     void set_default_strides();
 
-    uint32_t size() const;
+    size_t size() const;
 
     uint32_t number_bytes() const { return size() * sizeof(Element); }
 
@@ -119,6 +119,17 @@ class Tensor {
             default:                                                        \
                 LOG(FATAL) << "Can't write value with unknown tensor type"; \
         }                                                                   \
+    }
+
+    Tensor& operator=(const std::vector<Element>& values) {
+        LOG_IF(FATAL, values.size() != size())
+            << "Can't assign an array of size " << values.size() << " to a tensor of size " << size();
+
+        for (size_t i = 0; i < size(); i++) {
+            WRITE_ELEMENT((this->operator[](i)), values[i]);
+        }
+
+        return *this;
     }
 
     template <typename T>
