@@ -110,3 +110,14 @@ TEST(BasicTensorOperations, DivTensor) {
         EXPECT_EQ((int32_t)t3[{i}], 4);
     }
 }
+
+TEST(BasicTensorOperations, SumTensor) {
+    uint32_t tensor_size = 3;
+    Tensor t1({tensor_size}, Type::INT32);
+    t1[{0}] = 1;
+    t1[{1}] = 2;
+    t1[{2}] = 3;
+
+    auto t2 = t1.sum(0);
+    EXPECT_EQ((int32_t)t2[{0}], 6);
+}

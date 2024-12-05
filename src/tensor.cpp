@@ -30,8 +30,14 @@ void Tensor::set_default_strides() {
 }
 
 Tensor Tensor::grad() {
+    LOG_IF(FATAL, !m_saved_context) << "Trying to read gradients from a tensor without gradients";
     LOG_IF(FATAL, !m_saved_context->grad()) << "Trying to read gradients from a tensor without gradients";
     return *(m_saved_context->grad());
+}
+
+void Tensor::reset_grad() {
+    LOG_IF(FATAL, !m_saved_context) << "Trying to read gradients from a tensor without gradients";
+    m_saved_context->grad() = nullptr;
 }
 
 Element& Tensor::operator[](const std::vector<uint32_t>& indices) {
@@ -56,7 +62,7 @@ Tensor Tensor::operator+(const Tensor& other) const {
 
     out.m_saved_context->save_for_backward({*this, other});
     out.m_requires_grad = true;
-    out.m_grad_fn = Tensor::add_backward_impl;
+    out.m_grad_fn = add_backward_impl;
     return out;
 }
 
@@ -68,7 +74,7 @@ Tensor Tensor::operator-(const Tensor& other) const {
 
     out.m_saved_context->save_for_backward({*this, other});
     out.m_requires_grad = true;
-    out.m_grad_fn = Tensor::sub_backward_impl;
+    out.m_grad_fn = sub_backward_impl;
     return out;
 }
 
@@ -80,7 +86,7 @@ Tensor Tensor::operator*(const Tensor& other) const {
 
     out.m_saved_context->save_for_backward({*this, other});
     out.m_requires_grad = true;
-    out.m_grad_fn = Tensor::mul_backward_impl;
+    out.m_grad_fn = mul_backward_impl;
     return out;
 }
 
@@ -92,7 +98,7 @@ Tensor Tensor::operator/(const Tensor& other) const {
 
     out.m_saved_context->save_for_backward({*this, other});
     out.m_requires_grad = true;
-    out.m_grad_fn = Tensor::div_backward_impl;
+    out.m_grad_fn = div_backward_impl;
     return out;
 }
 
@@ -103,14 +109,33 @@ Tensor Tensor::mm(const Tensor& other) const {
 
     out.m_saved_context->save_for_backward({*this, other});
     out.m_requires_grad = true;
-    out.m_grad_fn = Tensor::matmul_backward_impl;
+    out.m_grad_fn = matmul_backward_impl;
 
     return out;
 }
 
-Element& Tensor::operator[](uint32_t offset) {
-    LOG_IF(FATAL, offset >= size()) << "index out of range";
-    return *reinterpret_cast<Element*>(m_storage.at((m_offset + offset) * sizeof(Element)));
+Tensor Tensor::sum(uint32_t dim, bool keep_dims) const {
+    auto out_shape = this->m_shape;
+    LOG_IF(FATAL, dim >= (uint32_t)out_shape.size()) << "Trying to sum over non-existing dimension";
+
+    out_shape[dim] = 1;
+
+    Tensor out(out_shape, this->m_dtype);
+
+    sum_forward_impl(*this, dim, out);
+
+    if (!keep_dims && out_shape.size() > 1) {
+        out.m_shape.erase(out.m_shape.begin() + dim);
+        out.set_default_strides();
+    }
+
+    if (!enable_global_grad || !this->m_requires_grad) return out;
+
+    out.m_saved_context->save_for_backward({*this});
+    out.m_requires_grad = true;
+    out.m_grad_fn = sum_backward_impl;
+
+    return out;
 }
 
 Element Tensor::broadcasted_read(const std::vector<uint32_t>& indices) const {

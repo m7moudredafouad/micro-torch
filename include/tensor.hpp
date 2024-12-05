@@ -66,6 +66,8 @@ class Tensor {
 
     Tensor grad();
 
+    void reset_grad();
+
     void requires_grad(bool requires_grad) {
         LOG_IF(FATAL, m_grad_fn != nullptr) << "you can only change requires_grad flags of leaf variables";
         m_requires_grad = requires_grad;
@@ -85,12 +87,22 @@ class Tensor {
 
     Element& at(const std::vector<uint32_t>& indices) { return this->operator[](indices); }
 
+    Tensor transpose(uint32_t dim0 = 0, uint32_t dim1 = 1) {
+        Tensor t = *this;
+        std::swap(t.m_shape[dim0], t.m_shape[dim1]);
+        std::swap(t.m_stride[dim0], t.m_stride[dim1]);
+
+        t.m_saved_context = nullptr;
+        return t;
+    }
+
     Element& operator[](const std::vector<uint32_t>& indices);
     Tensor operator+(const Tensor& other) const;
     Tensor operator-(const Tensor& other) const;
     Tensor operator*(const Tensor& other) const;
     Tensor operator/(const Tensor& other) const;
     Tensor mm(const Tensor& other) const;
+    Tensor sum(uint32_t dim, bool keep_dims = false) const;
 
 #define WRITE_ELEMENT(out, value)                                           \
     {                                                                       \
@@ -179,7 +191,10 @@ class Tensor {
    private:
     Element operator[](uint32_t offset) const { return const_cast<Tensor*>(this)->operator[](offset); }
 
-    Element& operator[](uint32_t offset);
+    Element& operator[](uint32_t offset) {
+        LOG_IF(FATAL, offset >= size()) << "index out of range";
+        return *reinterpret_cast<Element*>(m_storage.at((m_offset + offset) * sizeof(Element)));
+    }
 
     Element broadcasted_read(const std::vector<uint32_t>& indices) const;
 
@@ -200,6 +215,7 @@ class Tensor {
     friend std::ostream& operator<<(std::ostream& os, const Tensor& t);
     friend Tensor get_element_wise_empty_output(const Tensor& in1, const Tensor& in2);
     friend Tensor get_matmul_empty_output(const Tensor& in1, const Tensor& in2);
+    friend void align_gradient_with_tensor(const Tensor& tensor, Tensor& gradient);
 
     // Forward Functions
     static void add_forward_impl(const Tensor& in1, const Tensor& in2, Tensor& out);
@@ -207,6 +223,7 @@ class Tensor {
     static void mul_forward_impl(const Tensor& in1, const Tensor& in2, Tensor& out);
     static void div_forward_impl(const Tensor& in1, const Tensor& in2, Tensor& out);
     static void matmul_forward_impl(const Tensor& in1, const Tensor& in2, Tensor& out);
+    static void sum_forward_impl(const Tensor& in, const uint32_t dim, Tensor& out);
 
     // Backward Functions
     static void add_backward_impl(Tensor& out);
@@ -214,6 +231,7 @@ class Tensor {
     static void mul_backward_impl(Tensor& out);
     static void div_backward_impl(Tensor& out);
     static void matmul_backward_impl(Tensor& out);
+    static void sum_backward_impl(Tensor& out);
 
     void topological_sort(Tensor& curr, std::vector<Tensor>& list,
                           std::unordered_set<std::shared_ptr<AutogradContext>>& visited);
