@@ -8,6 +8,26 @@ void with_no_grad() { enable_global_grad = false; }
 
 void with_grad() { enable_global_grad = true; }
 
+std::ostream& operator<<(std::ostream& os, const Type& type) {
+#define ToOStream(type, st) \
+    case type: {            \
+        os << #st;          \
+    } break
+
+    switch (type) {
+        ToOStream(Type::UINT32, uint32);
+        ToOStream(Type::INT32, int32);
+        ToOStream(Type::FLOAT32, float32);
+        ToOStream(Type::UNKONWN, unknown);
+        default:
+            break;
+    }
+
+#undef ToOStream
+
+    return os;
+}
+
 size_t Tensor::size() const {
     LOG_IF(FATAL, m_shape.size() == 0);
     size_t size = 1;

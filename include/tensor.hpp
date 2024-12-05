@@ -14,6 +14,8 @@ class AutogradContext;
 
 enum class Type : uint8_t { UINT32 = 0, INT32, FLOAT32, UNKONWN };
 
+std::ostream& operator<<(std::ostream& os, const Type& type);
+
 struct Element {
     union Data {
         uint32_t u32 = 0;
